@@ -1,7 +1,9 @@
 package az.company.camunda.order;
 
+import org.camunda.bpm.engine.ManagementService;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.runtime.Job;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,9 @@ class OrderPaymentCorrelationTest {
 
     @Autowired
     private RuntimeService runtimeService;
+
+    @Autowired
+    private ManagementService managementService;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -64,8 +69,22 @@ class OrderPaymentCorrelationTest {
                 .processInstanceVariableEquals("correlationId", correlationIdA)
                 .correlateWithResult();
 
+        // Task_NotifyShipping is asyncBefore, so correlation commits after
+        // Task_MarkPaid and parks the rest of the flow in a job.
+        Job shippingCall = managementService.createJobQuery()
+                .processInstanceId(instanceA.getId())
+                .singleResult();
+        managementService.executeJob(shippingCall.getId());
+
         assertThat(instanceA).isEnded().hasPassed("Task_MarkPaid", "Event_OrderCompleted");
         assertThat(instanceB).isNotEnded().isWaitingAt("Gateway_WaitForEvent");
+
+        assertThat(managementService.createJobQuery()
+                .processInstanceId(instanceB.getId())
+                .activityId("Task_NotifyShipping")
+                .count())
+                .as("the uncorrelated instance must not have advanced past the gateway")
+                .isZero();
 
         assertThat(orderRepository.findByCorrelationId(correlationIdA).orElseThrow().getStatus())
                 .isEqualTo(OrderStatus.PAID);

@@ -88,7 +88,10 @@
         isForCompensation="true"
         camunda:delegateExpression="${revertPaymentDelegate}" />
 
-    <bpmn:serviceTask id="Task_NotifyShipping" name="Notify Shipping" camunda:delegateExpression="${notifyShippingDelegate}">
+    <bpmn:serviceTask id="Task_NotifyShipping" name="Notify Shipping"
+        camunda:delegateExpression="${notifyShippingDelegate}"
+        camunda:asyncBefore="true"
+        camunda:failedJobRetryTimeCycle="R3/PT10S">
       <bpmn:incoming>Flow_ToNotifyShipping</bpmn:incoming>
       <bpmn:outgoing>Flow_ToCompleted</bpmn:outgoing>
     </bpmn:serviceTask>

@@ -15,6 +15,9 @@ compensates itself when a downstream step fails.
 | **Exclusive gateway** with a default flow | `Gateway_RiskCheck` |
 | **User task** with a candidate group | `Task_ManualReview` (`risk-review`) |
 | **Boundary error event** + **saga / compensation** | `Boundary_ShippingFailed`, `Task_RevertPayment` |
+| **Async continuation** as a transaction boundary | `asyncBefore` on `Task_NotifyShipping` |
+| **Job retries and incidents** | `failedJobRetryTimeCycle`, `ShippingRetryAndIncidentTest` |
+| **Job executor tuning** | `camunda.bpm.job-execution` in `application.yaml` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -40,9 +43,22 @@ Order Created ─► Create Order ─► Assess Risk ─► Risk? ─┤        
 | `[100..1000)` | `MEDIUM` | straight to payment wait |
 | `>= 1000` | `HIGH` | routed through a manual review user task first |
 
-An order whose customer name contains `ShipFail` makes `Notify Shipping` throw a
-`BpmnError`, which triggers compensation and flips the already-`PAID` order to
-`REFUNDED` — the saga pattern, end to end.
+### Business failure vs. technical failure
+
+`Notify Shipping` is marked `asyncBefore`, so the payment is durably committed
+before the external call is attempted — a crash mid-call can never lose the fact
+that the customer paid. From there the two failure kinds diverge, which is the
+whole point of the step:
+
+| Customer name contains | Delegate throws | Engine response | Order ends up |
+|---|---|---|---|
+| `ShipFail` | `BpmnError` | boundary error event → compensation | `REFUNDED` |
+| `TechFail` | `IllegalStateException` | job retried per `R3/PT10S`, then an incident | stays `PAID`, process parked |
+
+A rejected shipment is a modelled business outcome, so it compensates. A broken
+connection is not — retrying is the correct response, and once retries are
+exhausted an operator resolves the incident in Cockpit rather than the system
+silently refunding a paying customer.
 
 ## Running it
 

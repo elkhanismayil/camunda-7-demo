@@ -23,6 +23,27 @@ spring:
 camunda.bpm:
   database:
     schema-update: true      # let Camunda create/upgrade its own tables
+  job-execution:
+    enabled: true
+    # Threads that actually run acquired jobs. Too few starves throughput;
+    # too many just moves the bottleneck onto the DB connection pool, so
+    # keep max-pool-size at or below the Hikari pool size.
+    core-pool-size: 3
+    max-pool-size: 10
+    # Jobs buffered between acquisition and execution. A large queue hides
+    # backpressure and lengthens the window in which a crash abandons work.
+    queue-capacity: 20
+    # How many jobs one acquisition cycle locks at once. Raising it cuts
+    # acquisition round-trips but increases optimistic-locking contention
+    # between nodes competing for the same jobs in a cluster.
+    max-jobs-per-acquisition: 3
+    # How long an acquired job stays locked to this node. Must exceed the
+    # slowest realistic job duration, otherwise another node picks the job
+    # up while it is still running and it executes twice.
+    lock-time-in-millis: 300000
+    # Idle backoff between acquisition cycles when there is nothing to do.
+    wait-time-in-millis: 5000
+    max-wait: 60000
   admin-user:
     id: demo
     password: demo

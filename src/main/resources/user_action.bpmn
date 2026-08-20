@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1g97i7p" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.49.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.1.0">
+  <bpmn:process id="Process_093932i" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:userTask id="Activity_058gka6" name="User Activity">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1d4ekot</bpmn:incoming>
+      <bpmn:outgoing>Flow_0fqeys4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0uh486j</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1d4ekot" sourceRef="StartEvent_1" targetRef="Activity_058gka6" />
+    <bpmn:startEvent id="StartEvent_1" name="Start Event">
+      <bpmn:outgoing>Flow_1d4ekot</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="Event_0emn70p" name="End Event">
+      <bpmn:incoming>Flow_0fqeys4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0fqeys4" sourceRef="Activity_058gka6" targetRef="Event_0emn70p" />
+    <bpmn:userTask id="Activity_17mk05n" name="Another user task">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0uh486j</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_0uh486j" sourceRef="Activity_058gka6" targetRef="Activity_17mk05n" />
+    <bpmn:textAnnotation id="TextAnnotation_14fhzkh">
+      <bpmn:text>Start Process</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_01xep2g" associationDirection="None" sourceRef="StartEvent_1" targetRef="TextAnnotation_14fhzkh" />
+    <bpmn:textAnnotation id="TextAnnotation_0j1yh8i">
+      <bpmn:text>User Action</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_1or6zu8" associationDirection="None" sourceRef="Activity_058gka6" targetRef="TextAnnotation_0j1yh8i" />
+    <bpmn:textAnnotation id="TextAnnotation_1owa6tb">
+      <bpmn:text>End Process</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0c31emo" associationDirection="None" sourceRef="Event_0emn70p" targetRef="TextAnnotation_1owa6tb" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_093932i">
+      <bpmndi:BPMNShape id="Activity_058gka6_di" bpmnElement="Activity_058gka6">
+        <dc:Bounds x="340" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_13ngbks_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="153" y="235" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0emn70p_di" bpmnElement="Event_0emn70p">
+        <dc:Bounds x="582" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="235" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_17mk05n_di" bpmnElement="Activity_17mk05n">
+        <dc:Bounds x="441" y="400" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_14fhzkh_di" bpmnElement="TextAnnotation_14fhzkh">
+        <dc:Bounds x="200" y="100" width="102" height="40" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0j1yh8i_di" bpmnElement="TextAnnotation_0j1yh8i">
+        <dc:Bounds x="440" y="80" width="102" height="40" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1owa6tb_di" bpmnElement="TextAnnotation_1owa6tb">
+        <dc:Bounds x="620" y="100" width="102" height="40" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1d4ekot_di" bpmnElement="Flow_1d4ekot">
+        <di:waypoint x="198" y="210" />
+        <di:waypoint x="340" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0fqeys4_di" bpmnElement="Flow_0fqeys4">
+        <di:waypoint x="440" y="210" />
+        <di:waypoint x="582" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_01xep2g_di" bpmnElement="Association_01xep2g">
+        <di:waypoint x="191" y="196" />
+        <di:waypoint x="234" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1or6zu8_di" bpmnElement="Association_1or6zu8">
+        <di:waypoint x="426" y="170" />
+        <di:waypoint x="472" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0c31emo_di" bpmnElement="Association_0c31emo">
+        <di:waypoint x="611" y="196" />
+        <di:waypoint x="654" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0uh486j_di" bpmnElement="Flow_0uh486j">
+        <di:waypoint x="440" y="210" />
+        <di:waypoint x="491" y="210" />
+        <di:waypoint x="491" y="400" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

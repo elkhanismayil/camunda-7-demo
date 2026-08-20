@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Camunda Correlation Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: #1a1a1a;
+            background: #fafafa;
+        }
+        h1 { margin-bottom: 0.2rem; }
+        p.subtitle { color: #666; margin-top: 0; }
+        .message {
+            background: #e6f4ea;
+            border: 1px solid #34a853;
+            color: #1e7e34;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+        form.create-form {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        form.create-form label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+            color: #555;
+            gap: 0.25rem;
+        }
+        input {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: #1a73e8;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        button.secondary {
+            background: #34a853;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.8rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        th { background: #f5f5f5; }
+        code {
+            font-size: 0.8rem;
+            background: #f0f0f0;
+            padding: 0.15rem 0.35rem;
+            border-radius: 4px;
+        }
+        .badge {
+            padding: 0.2rem 0.55rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-AWAITING_PAYMENT { background: #fff3cd; color: #8a6d00; }
+        .badge-PAID { background: #d4edda; color: #1e7e34; }
+        .badge-CANCELLED { background: #f8d7da; color: #a71d2a; }
+        .empty { color: #888; padding: 1rem; text-align: center; }
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .pagination a, .pagination span {
+            display: inline-block;
+            min-width: 1.6rem;
+            text-align: center;
+            padding: 0.35rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            color: #1a73e8;
+            border: 1px solid transparent;
+        }
+        .pagination a:hover { border-color: #1a73e8; }
+        .pagination span.current {
+            background: #1a73e8;
+            color: #fff;
+            font-weight: 600;
+        }
+        .pagination span.disabled { color: #bbb; }
+        .pagination .info {
+            color: #888;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Camunda Correlation Demo</h1>
+<p class="subtitle">
+    Each order starts a process instance that waits for a <code>PaymentReceived</code> message
+    correlated by its <code>correlationId</code> - or times out after an hour and gets cancelled.
+</p>
+
+<div class="message" th:if="${message}" th:text="${message}"></div>
+
+<form class="create-form" method="post" th:action="@{/orders}" th:object="${form}">
+    <label>
+        Customer name
+        <input type="text" th:field="*{customerName}" required="required"/>
+    </label>
+    <label>
+        Amount
+        <input type="number" step="0.01" min="0" th:field="*{amount}" required="required"/>
+    </label>
+    <button type="submit">Create Order &amp; Start Process</button>
+</form>
+
+<table>
+    <thead>
+    <tr>
+        <th>Correlation ID</th>
+        <th>Customer</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:if="${orderPage.empty}">
+        <td class="empty" colspan="6">No orders yet - create one above.</td>
+    </tr>
+    <tr th:each="order : ${orderPage.content}">
+        <td><code th:text="${order.correlationId}"></code></td>
+        <td th:text="${order.customerName}"></td>
+        <td th:text="${order.amount}"></td>
+        <td>
+            <span class="badge" th:classappend="'badge-' + ${order.status}" th:text="${order.status}"></span>
+        </td>
+        <td th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+        <td>
+            <form method="post" th:if="${order.status.name() == 'AWAITING_PAYMENT'}"
+                  th:action="@{/orders/{id}/payment(id=${order.correlationId})}">
+                <button type="submit" class="secondary">Simulate Payment</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<nav class="pagination" th:if="${orderPage.totalPages > 1}">
+    <span class="info"
+          th:text="'Page ' + ${orderPage.number + 1} + ' of ' + ${orderPage.totalPages} + ' (' + ${orderPage.totalElements} + ' orders)'"></span>
+
+    <span th:if="${orderPage.first}" class="disabled">&laquo; Prev</span>
+    <a th:unless="${orderPage.first}"
+       th:href="@{/orders(page=${orderPage.number - 1}, size=${size})}">&laquo; Prev</a>
+
+    <th:block th:each="pageNumber : ${#numbers.sequence(0, orderPage.totalPages - 1)}">
+        <span th:if="${pageNumber == orderPage.number}" class="current" th:text="${pageNumber + 1}"></span>
+        <a th:unless="${pageNumber == orderPage.number}"
+           th:href="@{/orders(page=${pageNumber}, size=${size})}"
+           th:text="${pageNumber + 1}"></a>
+    </th:block>
+
+    <a th:unless="${orderPage.last}"
+       th:href="@{/orders(page=${orderPage.number + 1}, size=${size})}">Next &raquo;</a>
+    <span th:if="${orderPage.last}" class="disabled">Next &raquo;</span>
+</nav>
+
+</body>
+</html>

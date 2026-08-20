@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:camunda="http://camunda.org/schema/1.0/dmn"
+             id="Definitions_PaymentRisk"
+             name="Payment Risk Definitions"
+             namespace="http://camunda.org/schema/1.0/dmn"
+             exporter="Camunda Modeler" exporterVersion="5.49.0">
+
+  <decision id="Decision_PaymentRisk" name="Payment Risk Assessment" camunda:historyTimeToLive="180">
+    <decisionTable id="DecisionTable_PaymentRisk" hitPolicy="UNIQUE">
+      <input id="Input_Amount" label="Order Amount">
+        <inputExpression id="InputExpression_Amount" typeRef="double">
+          <text>amount</text>
+        </inputExpression>
+      </input>
+      <output id="Output_RiskLevel" label="Risk Level" name="riskLevel" typeRef="string" />
+
+      <rule id="Rule_Low">
+        <inputEntry id="InputEntry_Low"><text>&lt; 100</text></inputEntry>
+        <outputEntry id="OutputEntry_Low"><text>"LOW"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Medium">
+        <inputEntry id="InputEntry_Medium"><text>[100..1000)</text></inputEntry>
+        <outputEntry id="OutputEntry_Medium"><text>"MEDIUM"</text></outputEntry>
+      </rule>
+      <rule id="Rule_High">
+        <inputEntry id="InputEntry_High"><text>&gt;= 1000</text></inputEntry>
+        <outputEntry id="OutputEntry_High"><text>"HIGH"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

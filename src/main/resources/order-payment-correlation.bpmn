@@ -10,6 +10,7 @@
                   exporter="Camunda Modeler" exporterVersion="5.49.0">
 
   <bpmn:message id="Message_PaymentReceived" name="PaymentReceived" />
+  <bpmn:error id="Error_ShippingFailed" name="ShippingFailed" errorCode="SHIPPING_FAILED" />
 
   <bpmn:process id="order-payment-correlation" name="Order Payment Correlation" isExecutable="true" camunda:historyTimeToLive="180">
 
@@ -75,9 +76,40 @@
 
     <bpmn:serviceTask id="Task_MarkPaid" name="Mark Order Paid" camunda:delegateExpression="${markOrderPaidDelegate}">
       <bpmn:incoming>Flow_ToMarkPaid</bpmn:incoming>
-      <bpmn:outgoing>Flow_ToCompleted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToNotifyShipping</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_ToMarkPaid" sourceRef="Event_PaymentReceived" targetRef="Task_MarkPaid" />
+
+    <bpmn:boundaryEvent id="Boundary_MarkPaidCompensation" attachedToRef="Task_MarkPaid">
+      <bpmn:compensateEventDefinition id="CompensateEventDefinition_1" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_RevertPayment" name="Revert Payment"
+        isForCompensation="true"
+        camunda:delegateExpression="${revertPaymentDelegate}" />
+
+    <bpmn:serviceTask id="Task_NotifyShipping" name="Notify Shipping" camunda:delegateExpression="${notifyShippingDelegate}">
+      <bpmn:incoming>Flow_ToNotifyShipping</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCompleted</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ToNotifyShipping" sourceRef="Task_MarkPaid" targetRef="Task_NotifyShipping" />
+
+    <bpmn:boundaryEvent id="Boundary_ShippingFailed" attachedToRef="Task_NotifyShipping" cancelActivity="true">
+      <bpmn:outgoing>Flow_ToThrowCompensation</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_1" errorRef="Error_ShippingFailed" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:intermediateThrowEvent id="Event_ThrowCompensation" name="Compensate Payment">
+      <bpmn:incoming>Flow_ToThrowCompensation</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReversed</bpmn:outgoing>
+      <bpmn:compensateEventDefinition id="CompensateEventDefinition_2" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_ToThrowCompensation" sourceRef="Boundary_ShippingFailed" targetRef="Event_ThrowCompensation" />
+
+    <bpmn:endEvent id="Event_PaymentReversed" name="Payment Reversed">
+      <bpmn:incoming>Flow_ToReversed</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ToReversed" sourceRef="Event_ThrowCompensation" targetRef="Event_PaymentReversed" />
 
     <bpmn:serviceTask id="Task_CancelOrder" name="Cancel Order" camunda:delegateExpression="${cancelOrderDelegate}">
       <bpmn:incoming>Flow_ToCancelOrder</bpmn:incoming>
@@ -88,12 +120,14 @@
     <bpmn:endEvent id="Event_OrderCompleted" name="Order Completed">
       <bpmn:incoming>Flow_ToCompleted</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_ToCompleted" sourceRef="Task_MarkPaid" targetRef="Event_OrderCompleted" />
+    <bpmn:sequenceFlow id="Flow_ToCompleted" sourceRef="Task_NotifyShipping" targetRef="Event_OrderCompleted" />
 
     <bpmn:endEvent id="Event_OrderCancelled" name="Order Cancelled">
       <bpmn:incoming>Flow_ToCancelled</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_ToCancelled" sourceRef="Task_CancelOrder" targetRef="Event_OrderCancelled" />
+
+    <bpmn:association id="Association_Compensation" sourceRef="Boundary_MarkPaidCompensation" targetRef="Task_RevertPayment" />
 
   </bpmn:process>
 
@@ -141,13 +175,37 @@
       <bpmndi:BPMNShape id="Task_MarkPaid_di" bpmnElement="Task_MarkPaid">
         <dc:Bounds x="970" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Boundary_MarkPaidCompensation_di" bpmnElement="Boundary_MarkPaidCompensation">
+        <dc:Bounds x="1002" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RevertPayment_di" bpmnElement="Task_RevertPayment">
+        <dc:Bounds x="970" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_NotifyShipping_di" bpmnElement="Task_NotifyShipping">
+        <dc:Bounds x="1100" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Boundary_ShippingFailed_di" bpmnElement="Boundary_ShippingFailed">
+        <dc:Bounds x="1132" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ThrowCompensation_di" bpmnElement="Event_ThrowCompensation">
+        <dc:Bounds x="1300" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1342" y="207" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_PaymentReversed_di" bpmnElement="Event_PaymentReversed">
+        <dc:Bounds x="1300" y="280" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1278" y="323" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_CancelOrder_di" bpmnElement="Task_CancelOrder">
         <dc:Bounds x="970" y="250" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_OrderCompleted_di" bpmnElement="Event_OrderCompleted">
-        <dc:Bounds x="1135" y="102" width="36" height="36" />
+        <dc:Bounds x="1230" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1113" y="145" width="80" height="14" />
+          <dc:Bounds x="1208" y="145" width="80" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_OrderCancelled_di" bpmnElement="Event_OrderCancelled">
@@ -197,13 +255,30 @@
         <di:waypoint x="906" y="120" />
         <di:waypoint x="970" y="120" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_Compensation_di" bpmnElement="Association_Compensation">
+        <di:waypoint x="1020" y="178" />
+        <di:waypoint x="1020" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToNotifyShipping_di" bpmnElement="Flow_ToNotifyShipping">
+        <di:waypoint x="1070" y="120" />
+        <di:waypoint x="1100" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToThrowCompensation_di" bpmnElement="Flow_ToThrowCompensation">
+        <di:waypoint x="1150" y="178" />
+        <di:waypoint x="1150" y="218" />
+        <di:waypoint x="1300" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToReversed_di" bpmnElement="Flow_ToReversed">
+        <di:waypoint x="1318" y="236" />
+        <di:waypoint x="1318" y="280" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToCancelOrder_di" bpmnElement="Flow_ToCancelOrder">
         <di:waypoint x="906" y="290" />
         <di:waypoint x="970" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToCompleted_di" bpmnElement="Flow_ToCompleted">
-        <di:waypoint x="1070" y="120" />
-        <di:waypoint x="1135" y="120" />
+        <di:waypoint x="1200" y="120" />
+        <di:waypoint x="1230" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToCancelled_di" bpmnElement="Flow_ToCancelled">
         <di:waypoint x="1070" y="290" />

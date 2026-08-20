@@ -1,0 +1,29 @@
+package az.company.camunda.order;
+
+import org.camunda.bpm.engine.delegate.DelegateExecution;
+import org.camunda.bpm.engine.delegate.JavaDelegate;
+import org.springframework.stereotype.Component;
+
+/**
+ * Compensation handler for Task_MarkPaid. Runs only when triggered by a
+ * compensation event (never in the normal happy path) to undo the
+ * already-completed payment when a later saga step fails.
+ */
+@Component("revertPaymentDelegate")
+public class RevertPaymentDelegate implements JavaDelegate {
+
+    private final OrderRepository orderRepository;
+
+    public RevertPaymentDelegate(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    @Override
+    public void execute(DelegateExecution execution) {
+        String correlationId = (String) execution.getVariable("correlationId");
+        orderRepository.findByCorrelationId(correlationId).ifPresent(order -> {
+            order.refund();
+            orderRepository.save(order);
+        });
+    }
+}

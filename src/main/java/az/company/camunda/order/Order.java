@@ -61,6 +61,11 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
+    public void refund() {
+        this.status = OrderStatus.REFUNDED;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }

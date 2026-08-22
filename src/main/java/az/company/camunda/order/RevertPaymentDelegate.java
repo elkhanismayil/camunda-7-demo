@@ -1,5 +1,6 @@
 package az.company.camunda.order;
 
+import az.company.camunda.events.OrderEventOutbox;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
@@ -13,9 +14,11 @@ import org.springframework.stereotype.Component;
 public class RevertPaymentDelegate implements JavaDelegate {
 
     private final OrderRepository orderRepository;
+    private final OrderEventOutbox outbox;
 
-    public RevertPaymentDelegate(OrderRepository orderRepository) {
+    public RevertPaymentDelegate(OrderRepository orderRepository, OrderEventOutbox outbox) {
         this.orderRepository = orderRepository;
+        this.outbox = outbox;
     }
 
     @Override
@@ -24,6 +27,12 @@ public class RevertPaymentDelegate implements JavaDelegate {
         orderRepository.findByCorrelationId(correlationId).ifPresent(order -> {
             order.refund();
             orderRepository.save(order);
+
+            // The refund gets its own event rather than retracting ORDER_PAID:
+            // downstream consumers already acted on the payment, so the honest
+            // thing to publish is that it was reversed.
+            outbox.record(OrderEventOutbox.ORDER_REFUNDED, correlationId,
+                    order.getCustomerName(), order.getAmount());
         });
     }
 }

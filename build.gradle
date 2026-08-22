@@ -31,6 +31,11 @@ dependencies {
     // Spring Boot 4 removed Jersey auto-configuration entirely. See the
     // external task section of the README.
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // The starter, not raw spring-kafka: Spring Boot 4 moved Kafka
+    // auto-configuration into its own module, so plain spring-kafka gives you
+    // the framework without KafkaTemplate, @KafkaListener support or any of
+    // the spring.kafka.* properties.
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation "org.camunda.bpm:camunda-bpm-assert:${camundaVersion}"
     runtimeOnly 'org.postgresql:postgresql'

@@ -1,4 +1,10 @@
 spring:
+  kafka:
+    listener:
+      # No broker in these tests. The listener bean still exists so the tests
+      # can invoke it directly and assert on correlation, deduplication and the
+      # retryable/not-retryable split without a Kafka round trip.
+      auto-startup: false
   datasource:
     url: jdbc:h2:mem:camunda-test;DB_CLOSE_DELAY=-1
     username: sa
@@ -19,3 +25,12 @@ camunda.bpm:
 
 # InvoiceWorker is @Profile("!test"), so no polling loop competes with the
 # tests for external tasks - they fetch and complete them explicitly instead.
+# OutboxPublisher and KafkaConfig are excluded the same way; the outbox rows
+# themselves are plain JPA writes, so they are fully testable without a broker.
+
+demo:
+  kafka:
+    payment-events-topic: payment-events
+    payment-events-dlt-topic: payment-events-dlt
+    order-events-topic: order-events
+    consumer-group: camunda-payment-correlator

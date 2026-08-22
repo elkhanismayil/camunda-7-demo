@@ -20,6 +20,26 @@ spring:
 
     open-in-view: false
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Wait for all in-sync replicas. The outbox blocks on this acknowledgement
+      # before marking a row published, so a weaker setting here would mean
+      # "published" rows whose records were never durably stored.
+      acks: all
+    consumer:
+      group-id: camunda-payment-correlator
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # Offsets are committed by the container after the listener returns, so a
+      # crash mid-handling redelivers rather than silently skipping.
+      enable-auto-commit: false
+    listener:
+      ack-mode: record
+
 camunda.bpm:
   database:
     schema-update: true      # let Camunda create/upgrade its own tables
@@ -55,3 +75,11 @@ demo:
   invoice-worker:
     # How often the external task worker asks the engine for work on its topic.
     poll-interval-ms: 2000
+  outbox:
+    # How often committed domain events are drained to Kafka.
+    poll-interval-ms: 1000
+  kafka:
+    payment-events-topic: payment-events
+    payment-events-dlt-topic: payment-events-dlt
+    order-events-topic: order-events
+    consumer-group: camunda-payment-correlator

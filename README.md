@@ -20,6 +20,8 @@ compensates itself when a downstream step fails.
 | **Job executor tuning** | `camunda.bpm.job-execution` in `application.yaml` |
 | **Process versioning & instance migration** | `ProcessVersioningAndMigrationTest` |
 | **External task pattern** (topic + worker) | `Task_GenerateInvoice`, `InvoiceWorker` |
+| **Kafka in** — event correlates a waiting instance | `PaymentEventConsumer` |
+| **Kafka out** — transactional outbox | `OrderEventOutbox`, `OutboxPublisher` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -96,6 +98,59 @@ duration carries the same trade-off as the job executor's `lock-time-in-millis`
 > `complete`, `handleFailure` — so only the network hop is missing, not the
 > pattern.
 
+### Kafka: the dual write, and how the outbox removes it
+
+The obvious way to publish an `ORDER_PAID` event is to call the producer from
+inside `MarkOrderPaidDelegate`. That is a **dual write**: the engine commits
+order state and process state to Postgres, the producer sends to a broker, and
+nothing ties the two together. Crash in the gap and you get one of two bad
+outcomes — an event for a step that rolled back, or a committed step the world
+never hears about. There is no ordering of the two calls that fixes it.
+
+So the delegates don't touch Kafka. They write an `outbox_event` row **in the
+same transaction** as the status change:
+
+```java
+order.markPaid();
+orderRepository.save(order);
+outbox.record(ORDER_PAID, correlationId, order.getCustomerName(), order.getAmount());
+```
+
+Same database, same transaction, so all three commit or none do. `OutboxPublisher`
+then drains unpublished rows to Kafka on a schedule, after the commit.
+
+That leaves exactly one honest weakness, and it is worth naming rather than
+hiding: the broker acknowledgement and the `publishedAt` update are still two
+systems. A crash between them republishes the row, so delivery is
+**at-least-once**. The alternative — marking the row published first — loses
+events instead, which is strictly worse. Hence:
+
+- the Kafka **key is the correlationId**, so one order's events share a
+  partition and stay in order, and consumers can deduplicate on it;
+- the publisher **stops at the first failure** instead of skipping past it,
+  because publishing a later event before an earlier one defeats the keying;
+- consumers must be idempotent — which is exactly what the inbound side does.
+
+### Kafka inbound: what makes correlation from a topic hard
+
+`PaymentEventConsumer` makes the same `correlateWithResult()` call the REST
+endpoint makes. The transport changed; the process didn't. What changes is the
+delivery guarantees around it:
+
+| Situation | Response | Why |
+|---|---|---|
+| Event redelivered after the order was paid | no-op | order status is the dedup key; failing here would retry forever |
+| Order is in **manual review**, not at the message event | throw → backoff → retry | it's alive and will accept the payment, just not yet |
+| No such order | throw, marked **non-retryable** → DLT | waiting cannot conjure up an order |
+
+The middle row is the one worth remembering: a correlation failure usually means
+*too early*, not *invalid*. A HIGH-risk order parked at `Task_ManualReview` is
+exactly that case, and `PaymentEventConsumerTest` drives it end to end — the
+event fails, the reviewer completes the task, the same event then correlates.
+
+Without a dead letter topic a permanently failing record is retried forever and
+**blocks its partition**, stopping every well-formed event behind it.
+
 ### Versioning and migration
 
 Deploying a changed model is additive: Camunda stores it as a new *version* of
@@ -132,7 +187,28 @@ docker run -d --name camunda-postgres -p 5432:5432 \
   -e POSTGRES_DB=camunda -e POSTGRES_USER=camunda -e POSTGRES_PASSWORD=camunda \
   postgres:15
 
+# Kafka (single-node KRaft, no Zookeeper). Postgres is deliberately not in this
+# compose file - plenty of people already have one on 5432.
+docker compose up -d
+
 ./gradlew bootRun
+```
+
+Publishing a payment event instead of clicking *Simulate Payment* — the key is
+the correlationId:
+
+```bash
+docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-producer.sh \
+  --bootstrap-server localhost:9092 --topic payment-events \
+  --property parse.key=true --property key.separator=:
+> <correlationId>:<correlationId>
+```
+
+Watching what the process emits:
+
+```bash
+docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic order-events --from-beginning
 ```
 
 - UI: <http://localhost:8082/orders>

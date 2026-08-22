@@ -91,6 +91,7 @@
         .badge-CANCELLED { background: #f8d7da; color: #a71d2a; }
         .badge-REFUNDED { background: #e2d9f3; color: #5a3d99; }
         .empty { color: #888; padding: 1rem; text-align: center; }
+        .muted { color: #aaa; }
         .pagination {
             display: flex;
             align-items: center;
@@ -153,13 +154,14 @@
         <th>Customer</th>
         <th>Amount</th>
         <th>Status</th>
+        <th>Invoice</th>
         <th>Created</th>
         <th>Action</th>
     </tr>
     </thead>
     <tbody>
     <tr th:if="${orderPage.empty}">
-        <td class="empty" colspan="6">No orders yet - create one above.</td>
+        <td class="empty" colspan="7">No orders yet - create one above.</td>
     </tr>
     <tr th:each="order : ${orderPage.content}">
         <td><code th:text="${order.correlationId}"></code></td>
@@ -167,6 +169,11 @@
         <td th:text="${order.amount}"></td>
         <td>
             <span class="badge" th:classappend="'badge-' + ${order.status}" th:text="${order.status}"></span>
+        </td>
+        <!-- Written by the external task worker, not by the process itself. -->
+        <td>
+            <code th:if="${order.invoiceNumber != null}" th:text="${order.invoiceNumber}"></code>
+            <span th:unless="${order.invoiceNumber != null}" class="muted">-</span>
         </td>
         <td th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
         <td>

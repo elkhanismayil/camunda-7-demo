@@ -26,6 +26,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation "org.camunda.bpm.springboot:camunda-bpm-spring-boot-starter-webapp:${camundaVersion}"
+    // NOTE: camunda-bpm-spring-boot-starter-rest (and with it the REST-based
+    // external task client) cannot be added here - it is built on Jersey, and
+    // Spring Boot 4 removed Jersey auto-configuration entirely. See the
+    // external task section of the README.
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation "org.camunda.bpm:camunda-bpm-assert:${camundaVersion}"

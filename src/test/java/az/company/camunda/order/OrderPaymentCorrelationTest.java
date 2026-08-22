@@ -1,8 +1,10 @@
 package az.company.camunda.order;
 
+import org.camunda.bpm.engine.ExternalTaskService;
 import org.camunda.bpm.engine.ManagementService;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.externaltask.LockedExternalTask;
 import org.camunda.bpm.engine.runtime.Job;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,9 @@ class OrderPaymentCorrelationTest {
 
     @Autowired
     private ManagementService managementService;
+
+    @Autowired
+    private ExternalTaskService externalTaskService;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -75,6 +80,14 @@ class OrderPaymentCorrelationTest {
                 .processInstanceId(instanceA.getId())
                 .singleResult();
         managementService.executeJob(shippingCall.getId());
+
+        // Task_GenerateInvoice is an external task, i.e. a wait state: the
+        // engine publishes it on a topic and stops until a worker reports back.
+        LockedExternalTask invoiceTask = externalTaskService.fetchAndLock(1, "test-worker")
+                .topic("invoice-generation", 10_000L)
+                .execute()
+                .getFirst();
+        externalTaskService.complete(invoiceTask.getId(), "test-worker");
 
         assertThat(instanceA).isEnded().hasPassed("Task_MarkPaid", "Event_OrderCompleted");
         assertThat(instanceB).isNotEnded().isWaitingAt("Gateway_WaitForEvent");

@@ -50,3 +50,8 @@ camunda.bpm:
     firstName: Demo
   filter:
     create: All tasks
+
+demo:
+  invoice-worker:
+    # How often the external task worker asks the engine for work on its topic.
+    poll-interval-ms: 2000

@@ -16,3 +16,6 @@ camunda.bpm:
     firstName: Demo
   filter:
     create: All tasks
+
+# InvoiceWorker is @Profile("!test"), so no polling loop competes with the
+# tests for external tasks - they fetch and complete them explicitly instead.

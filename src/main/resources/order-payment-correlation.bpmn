@@ -93,9 +93,20 @@
         camunda:asyncBefore="true"
         camunda:failedJobRetryTimeCycle="R3/PT10S">
       <bpmn:incoming>Flow_ToNotifyShipping</bpmn:incoming>
-      <bpmn:outgoing>Flow_ToCompleted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToGenerateInvoice</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_ToNotifyShipping" sourceRef="Task_MarkPaid" targetRef="Task_NotifyShipping" />
+
+    <!-- External task: the engine only publishes the work on a topic and waits.
+         Nothing here names a bean or a class, so the worker is free to live in
+         another process, another host or another language entirely. -->
+    <bpmn:serviceTask id="Task_GenerateInvoice" name="Generate Invoice"
+        camunda:type="external"
+        camunda:topic="invoice-generation">
+      <bpmn:incoming>Flow_ToGenerateInvoice</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCompleted</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ToGenerateInvoice" sourceRef="Task_NotifyShipping" targetRef="Task_GenerateInvoice" />
 
     <bpmn:boundaryEvent id="Boundary_ShippingFailed" attachedToRef="Task_NotifyShipping" cancelActivity="true">
       <bpmn:outgoing>Flow_ToThrowCompensation</bpmn:outgoing>
@@ -123,7 +134,7 @@
     <bpmn:endEvent id="Event_OrderCompleted" name="Order Completed">
       <bpmn:incoming>Flow_ToCompleted</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_ToCompleted" sourceRef="Task_NotifyShipping" targetRef="Event_OrderCompleted" />
+    <bpmn:sequenceFlow id="Flow_ToCompleted" sourceRef="Task_GenerateInvoice" targetRef="Event_OrderCompleted" />
 
     <bpmn:endEvent id="Event_OrderCancelled" name="Order Cancelled">
       <bpmn:incoming>Flow_ToCancelled</bpmn:incoming>

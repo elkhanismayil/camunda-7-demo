@@ -35,6 +35,9 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
+    /** Written by the external task worker, not by the engine itself. */
+    private String invoiceNumber;
+
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -66,6 +69,11 @@ public class Order {
         this.updatedAt = Instant.now();
     }
 
+    public void assignInvoice(String invoiceNumber) {
+        this.invoiceNumber = invoiceNumber;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }
@@ -84,6 +92,10 @@ public class Order {
 
     public OrderStatus getStatus() {
         return status;
+    }
+
+    public String getInvoiceNumber() {
+        return invoiceNumber;
     }
 
     public Instant getCreatedAt() {

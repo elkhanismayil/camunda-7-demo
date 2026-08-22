@@ -19,6 +19,7 @@ compensates itself when a downstream step fails.
 | **Job retries and incidents** | `failedJobRetryTimeCycle`, `ShippingRetryAndIncidentTest` |
 | **Job executor tuning** | `camunda.bpm.job-execution` in `application.yaml` |
 | **Process versioning & instance migration** | `ProcessVersioningAndMigrationTest` |
+| **External task pattern** (topic + worker) | `Task_GenerateInvoice`, `InvoiceWorker` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -29,8 +30,8 @@ compensates itself when a downstream step fails.
 Order Created ─► Create Order ─► Assess Risk ─► Risk? ─┤                    ├─► Wait for Payment or Timeout
                                        └─ otherwise ───────────────────────┘         │
                                                                                      │
-                        ┌── Payment Received (message) ──► Mark Order Paid ─► Notify Shipping ─► Order Completed
-                        │                                        ▲                  │
+                        ┌── Payment Received (message) ──► Mark Order Paid ─► Notify Shipping ─► Generate Invoice ─► Order Completed
+                        │                                        ▲                  │              (external task)
                         │                                  (compensate)             │ BpmnError
                         │                                  Revert Payment ◄─────────┘
                         └── Payment Timeout (PT1H) ──────► Cancel Order ─► Order Cancelled
@@ -60,6 +61,40 @@ A rejected shipment is a modelled business outcome, so it compensates. A broken
 connection is not — retrying is the correct response, and once retries are
 exhausted an operator resolves the incident in Cockpit rather than the system
 silently refunding a paying customer.
+
+### Service task vs. external task
+
+`Notify Shipping` and `Generate Invoice` sit next to each other on purpose —
+they are the same kind of step wired two opposite ways:
+
+| | `Task_NotifyShipping` (delegate) | `Task_GenerateInvoice` (external) |
+|---|---|---|
+| Who calls whom | engine calls our bean | worker asks the engine for work |
+| BPMN refers to | `delegateExpression` → a bean | `camunda:topic` → nothing of ours |
+| Runs on | job executor thread, in the engine transaction | the worker's own thread, its own transaction |
+| Failure semantics | `BpmnError` / exception thrown from the delegate | `handleBpmnError` / `handleFailure` reported back |
+| Who decides retries | the model (`failedJobRetryTimeCycle`) | the worker, per failure |
+| Worker down | job fails and retries | nothing happens; the instance just waits |
+
+The external task is a **wait state**: reaching the activity runs none of our
+code, it only publishes the work on a topic. That is what decouples the two
+lifecycles — a worker can be redeployed, scaled out, or offline for an hour
+without a single instance failing.
+
+`fetchAndLock` is the whole concurrency story. Ten identical workers can poll
+one topic; the lock is what stops two of them doing the same invoice. The lock
+duration carries the same trade-off as the job executor's `lock-time-in-millis`
+— shorter than the slowest real call and the work runs twice.
+
+> **On the transport.** A real worker polls `/engine-rest` over HTTP via
+> `camunda-external-task-client`, which is what lets it be a separate
+> deployment in any language. That is not possible on this stack: Camunda
+> 7.24's REST starter is Jersey-based and Spring Boot 4 removed Jersey support,
+> so there is no `/engine-rest` to expose. `InvoiceWorker` therefore polls the
+> engine-side `ExternalTaskService` directly on a `@Scheduled` loop. The
+> operations are the same ones the REST client wraps — `fetchAndLock`,
+> `complete`, `handleFailure` — so only the network hop is missing, not the
+> pattern.
 
 ### Versioning and migration
 

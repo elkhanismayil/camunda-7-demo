@@ -1,8 +1,10 @@
 package az.company.camunda.order;
 
+import org.camunda.bpm.engine.ExternalTaskService;
 import org.camunda.bpm.engine.ManagementService;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.externaltask.LockedExternalTask;
 import org.camunda.bpm.engine.runtime.Job;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +44,9 @@ class PaymentReversalSagaTest {
     private ManagementService managementService;
 
     @Autowired
+    private ExternalTaskService externalTaskService;
+
+    @Autowired
     private OrderRepository orderRepository;
 
     @Autowired
@@ -71,9 +76,10 @@ class PaymentReversalSagaTest {
         ProcessInstance instance = processInstanceFor(correlationId);
 
         executeShippingJob(instance);
+        completeInvoiceTask();
 
         assertThat(instance).isEnded()
-                .hasPassed("Task_MarkPaid", "Task_NotifyShipping", "Event_OrderCompleted");
+                .hasPassed("Task_MarkPaid", "Task_NotifyShipping", "Task_GenerateInvoice", "Event_OrderCompleted");
 
         assertThat(statusOf(correlationId)).isEqualTo(OrderStatus.PAID);
     }
@@ -123,6 +129,19 @@ class PaymentReversalSagaTest {
                 .processInstanceId(instance.getId())
                 .singleResult();
         managementService.executeJob(job.getId());
+    }
+
+    /**
+     * The happy path ends on an external task, which is a wait state: the
+     * process only reaches its end event once a worker reports the invoice
+     * back. The compensation path never gets this far.
+     */
+    private void completeInvoiceTask() {
+        LockedExternalTask invoiceTask = externalTaskService.fetchAndLock(1, "test-worker")
+                .topic("invoice-generation", 10_000L)
+                .execute()
+                .getFirst();
+        externalTaskService.complete(invoiceTask.getId(), "test-worker");
     }
 
     private OrderStatus statusOf(String correlationId) {

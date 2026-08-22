@@ -18,6 +18,7 @@ compensates itself when a downstream step fails.
 | **Async continuation** as a transaction boundary | `asyncBefore` on `Task_NotifyShipping` |
 | **Job retries and incidents** | `failedJobRetryTimeCycle`, `ShippingRetryAndIncidentTest` |
 | **Job executor tuning** | `camunda.bpm.job-execution` in `application.yaml` |
+| **Process versioning & instance migration** | `ProcessVersioningAndMigrationTest` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -59,6 +60,32 @@ A rejected shipment is a modelled business outcome, so it compensates. A broken
 connection is not — retrying is the correct response, and once retries are
 exhausted an operator resolves the incident in Cockpit rather than the system
 silently refunding a paying customer.
+
+### Versioning and migration
+
+Deploying a changed model is additive: Camunda stores it as a new *version* of
+the same process definition key and leaves every already-running instance pinned
+to the definition it was started on. That is what makes deployment safe — it can
+never corrupt work in flight — but it also means old instances keep executing the
+old model indefinitely, so after a deployment you can have two instances that
+behave differently on the same click.
+
+Moving them across is an explicit operation:
+
+```java
+MigrationPlan plan = runtimeService.createMigrationPlan(oldDefinitionId, newDefinitionId)
+        .mapEqualActivities()
+        .build();
+
+runtimeService.newMigration(plan).processInstanceIds(ids).execute();
+```
+
+`mapEqualActivities()` maps only the activity ids present in both models. If the
+new version renamed the activity an instance is currently sitting on, the plan
+still builds but execution is rejected with
+`MigratingProcessInstanceValidationException` and the instance is left untouched
+— the engine will not guess where that token belongs. The fix is an explicit
+`.mapActivities("Task_ShipOrder", "Task_DispatchOrder")`, not a retry.
 
 ## Running it
 

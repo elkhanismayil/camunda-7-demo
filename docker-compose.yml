@@ -20,12 +20,15 @@ services:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      # The app runs on the host, so clients must be told to come back on
-      # localhost - not the container hostname they would otherwise receive.
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      # Two listeners, because "where do I reach the broker" has two different
+      # answers. A client is told, in the metadata response, which address to
+      # come back on - so the address has to be correct *from that client's
+      # point of view*. The app runs on the host and needs localhost; other
+      # containers need the compose service name. One listener cannot be both.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       # Single node, so nothing can be replicated anywhere.
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -36,6 +39,24 @@ services:
       interval: 5s
       timeout: 10s
       retries: 20
+
+  # Browsable view of the broker: topics, partitions, offsets and the actual
+  # message bodies. Nothing depends on it - it is there so the event flow is
+  # something you can look at rather than infer from logs.
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: camunda-demo-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - "8084:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: camunda-demo
+      # The internal listener, because this reaches the broker container to
+      # container - not through the host.
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0

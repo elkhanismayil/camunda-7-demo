@@ -255,10 +255,10 @@ docker run -d --name camunda-postgres -p 5432:5432 \
   -e POSTGRES_DB=camunda -e POSTGRES_USER=camunda -e POSTGRES_PASSWORD=camunda \
   postgres:15
 
-# Kafka (single-node KRaft, no Zookeeper) and Keycloak, whose realm - roles and
-# users included - is imported from keycloak/realm-camunda-demo.json so nothing
-# has to be clicked together. Postgres is deliberately not in this compose file;
-# plenty of people already have one on 5432.
+# Kafka (single-node KRaft, no Zookeeper), a Kafka UI, and Keycloak - whose
+# realm, roles and users are imported from keycloak/realm-camunda-demo.json so
+# nothing has to be clicked together. Postgres is deliberately not in this
+# compose file; plenty of people already have one on 5432.
 docker compose up -d
 
 ./gradlew bootRun
@@ -295,11 +295,61 @@ docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic order-events --from-beginning
 ```
 
+…or just open the Kafka UI, which shows the same thing with the message bodies
+expanded. Worth looking at `payment-events-dlt` after sending an event for a
+correlationId that does not exist: the dead-lettered record carries its own
+reason in the headers (`kafka_dlt-exception-cause-fqcn`,
+`kafka_dlt-exception-message`).
+
 - UI: <http://localhost:8082/orders>
 - Camunda webapps (Cockpit / Tasklist / Admin): <http://localhost:8082/camunda> (`demo` / `demo`)
+- Kafka UI (topics, partitions, message bodies): <http://localhost:8084>
 - Keycloak admin console: <http://localhost:8083> (`admin` / `admin`)
 
 Every credential in this repository is a local demo value.
+
+### Why the broker advertises two addresses
+
+"Where do I reach the broker" has two different answers here, and a client is
+told which address to come back on in the metadata response — so the address has
+to be right *from that client's point of view*. The app runs on the host and
+needs `localhost:9092`; the Kafka UI container needs the compose service name,
+`kafka:29092`. One listener cannot be both, hence:
+
+```yaml
+KAFKA_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093
+KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+```
+
+This is the usual cause of "the broker is up but my container cannot connect to
+it" — the connection succeeds, the metadata response then points the client at
+an address it cannot resolve, and it fails on the *next* call.
+
+### Checking Keycloak
+
+The admin console is one way, but the useful check is what the tokens actually
+carry — it is the same data the API authorizes on:
+
+```bash
+for u in alice bob carol; do
+  curl -s -X POST http://localhost:8083/realms/camunda-demo/protocol/openid-connect/token \
+    -d grant_type=password -d client_id=camunda-demo-api \
+    -d client_secret=demo-client-secret -d username=$u -d password=$u \
+  | jq -r .access_token | cut -d. -f2 | base64 -d 2>/dev/null \
+  | jq -c '{user: .preferred_username, roles: .realm_access.roles, scope}'
+done
+```
+
+```
+{"user":"alice","roles":["order-admin"], "scope":"email profile"}
+{"user":"bob",  "roles":["order-viewer"],"scope":"email profile"}
+{"user":"carol","roles":null,            "scope":"email profile"}
+```
+
+Note that `scope` is identical for all three. Everything that distinguishes them
+is in `realm_access.roles` — which is precisely why
+[the custom converter](#the-one-thing-that-always-breaks-role-mapping) exists.
 
 ### Tests
 

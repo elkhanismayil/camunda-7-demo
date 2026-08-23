@@ -1,4 +1,4 @@
-# Kafka broker for the event-driven half of the demo.
+# Kafka broker and Keycloak for the event-driven and secured halves of the demo.
 #
 # Postgres is deliberately not here - see the README. Many people running this
 # already have one on 5432, and a second container fighting for that port is a
@@ -36,3 +36,20 @@ services:
       interval: 5s
       timeout: 10s
       retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: camunda-demo-keycloak
+    restart: unless-stopped
+    # The realm is imported from a file rather than clicked together in the
+    # admin console, so the roles and users the API authorizes against are part
+    # of the repository and identical on every machine.
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8083
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./keycloak/realm-camunda-demo.json:/opt/keycloak/data/import/realm-camunda-demo.json:ro

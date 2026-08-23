@@ -1,4 +1,14 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # jwk-set-uri rather than issuer-uri: issuer-uri performs OIDC
+          # discovery at startup and would make every test require a running
+          # Keycloak. This builds the decoder lazily and is never called,
+          # because the tests inject pre-authenticated JWTs.
+          jwk-set-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/certs
+
   kafka:
     listener:
       # No broker in these tests. The listener bean still exists so the tests

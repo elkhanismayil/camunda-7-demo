@@ -20,6 +20,16 @@ spring:
 
     open-in-view: false
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Discovery: the app fetches the OIDC metadata once at startup and the
+          # signing keys from there, so rotating keys in Keycloak needs no
+          # redeploy. It also means the issuer claim is validated, not just the
+          # signature - a correctly signed token from another realm is rejected.
+          issuer-uri: http://localhost:8083/realms/camunda-demo
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:

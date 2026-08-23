@@ -22,6 +22,7 @@ compensates itself when a downstream step fails.
 | **External task pattern** (topic + worker) | `Task_GenerateInvoice`, `InvoiceWorker` |
 | **Kafka in** — event correlates a waiting instance | `PaymentEventConsumer` |
 | **Kafka out** — transactional outbox | `OrderEventOutbox`, `OutboxPublisher` |
+| **OAuth2 resource server** (Keycloak, JWT) | `SecurityConfig`, `KeycloakRealmRoleConverter` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -97,6 +98,73 @@ duration carries the same trade-off as the job executor's `lock-time-in-millis`
 > operations are the same ones the REST client wraps — `fetchAndLock`,
 > `complete`, `handleFailure` — so only the network hop is missing, not the
 > pattern.
+
+### Securing the API with Keycloak
+
+`/api/**` is an OAuth2 **resource server**. It validates a bearer token against
+Keycloak's published signing keys and authorizes on the roles inside it — no
+password ever reaches this application, and there is no auth round trip per
+request. `issuer-uri` makes it fetch OIDC metadata once at startup, which also
+means the `iss` claim is checked: a correctly signed token from a *different*
+realm is rejected rather than trusted.
+
+Roles come from the realm import, so they are part of the repo:
+
+| User | Password | Realm role | May |
+|---|---|---|---|
+| `alice` | `alice` | `order-admin` | create orders, report payments, read |
+| `bob` | `bob` | `order-viewer` | read only |
+| `carol` | `carol` | *(none)* | nothing |
+
+#### The one thing that always breaks: role mapping
+
+A Keycloak access token looks like this:
+
+```json
+"realm_access": { "roles": ["order-admin"] },
+"scope": "email profile"
+```
+
+Spring Security's default converter reads `scope`/`scp`. Against that token it
+produces `SCOPE_email`, `SCOPE_profile` and **no roles at all**, so every
+`hasRole` check fails on a token that is completely valid — which reads like a
+token problem and is actually a mapping problem. Hence
+`KeycloakRealmRoleConverter`, which digs `realm_access.roles` out and adds the
+`ROLE_` prefix that `hasRole("order-admin")` expands to. (Client roles, if you
+use them, are somewhere else again: `resource_access.<clientId>.roles`.)
+
+#### 401 vs. 403
+
+The tests keep these apart deliberately: **401 = we do not know who you are,
+403 = we do and you may not.** Verified against real Keycloak tokens:
+
+| Caller | `POST /api/orders` |
+|---|---|
+| no token | `401` |
+| malformed token | `401` |
+| `carol` (no roles) | `403` |
+| `bob` (viewer) | `403` |
+| `alice` (admin) | `200` |
+
+#### Three filter chains, not one
+
+The API, the Camunda webapps and the Thymeleaf UI have genuinely different
+needs, and one chain would mean weakening all three to the weakest:
+
+- **`/api/**`** — stateless bearer tokens, so no session, no cookie, and
+  therefore CSRF protection off. That is the only place it is off.
+- **`/camunda/**`** — Camunda ships its own login *and* its own CSRF filter;
+  layering Spring Security's on top rejects its POSTs.
+- **everything else** — open so the demo stays clickable, but CSRF stays **on**.
+  Thymeleaf injects the token into every `th:action` form.
+
+> **Scope note.** This secures the REST API. Single sign-on *into Cockpit /
+> Tasklist* is a different job — it needs `ContainerBasedAuthenticationFilter`
+> plus an `AuthenticationProvider` that maps the OIDC principal into Camunda's
+> identity service, or the community Keycloak identity plugin. That plugin
+> targets Spring Boot 3, and this project is on Boot 4, which has already cost
+> this repo Jersey (`/engine-rest`) and the Kafka auto-configuration package
+> move. It is left out rather than half-wired.
 
 ### Kafka: the dual write, and how the outbox removes it
 
@@ -187,11 +255,27 @@ docker run -d --name camunda-postgres -p 5432:5432 \
   -e POSTGRES_DB=camunda -e POSTGRES_USER=camunda -e POSTGRES_PASSWORD=camunda \
   postgres:15
 
-# Kafka (single-node KRaft, no Zookeeper). Postgres is deliberately not in this
-# compose file - plenty of people already have one on 5432.
+# Kafka (single-node KRaft, no Zookeeper) and Keycloak, whose realm - roles and
+# users included - is imported from keycloak/realm-camunda-demo.json so nothing
+# has to be clicked together. Postgres is deliberately not in this compose file;
+# plenty of people already have one on 5432.
 docker compose up -d
 
 ./gradlew bootRun
+```
+
+Calling the secured API:
+
+```bash
+TOKEN=$(curl -s -X POST \
+  http://localhost:8083/realms/camunda-demo/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=camunda-demo-api \
+  -d client_secret=demo-client-secret \
+  -d username=alice -d password=alice | jq -r .access_token)
+
+curl -X POST http://localhost:8082/api/orders \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"customerName":"Alice","amount":120}'
 ```
 
 Publishing a payment event instead of clicking *Simulate Payment* — the key is
@@ -213,8 +297,9 @@ docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-consumer.sh \
 
 - UI: <http://localhost:8082/orders>
 - Camunda webapps (Cockpit / Tasklist / Admin): <http://localhost:8082/camunda> (`demo` / `demo`)
+- Keycloak admin console: <http://localhost:8083> (`admin` / `admin`)
 
-The credentials above are local demo values only.
+Every credential in this repository is a local demo value.
 
 ### Tests
 
@@ -228,15 +313,18 @@ than racing a background thread.
 
 ## API
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/orders` | create an order and start a process instance |
-| `POST` | `/api/orders/{correlationId}/payment` | correlate a `PaymentReceived` message |
-| `GET` | `/api/orders/{correlationId}` | look up a single order |
+All of these require a bearer token — see [Securing the API with Keycloak](#securing-the-api-with-keycloak).
+
+| Method | Path | Required role | Purpose |
+|---|---|---|---|
+| `POST` | `/api/orders` | `order-admin` | create an order and start a process instance |
+| `POST` | `/api/orders/{correlationId}/payment` | `order-admin` | correlate a `PaymentReceived` message |
+| `GET` | `/api/orders/{correlationId}` | `order-viewer` or `order-admin` | look up a single order |
 
 The Thymeleaf UI at `/orders` drives the exact same `OrderService`, so clicking
 around exercises the real engine rather than a parallel code path.
 
 ## Stack
 
-Java 21 · Spring Boot 4.1 · Camunda Platform 7.24 · Spring Data JPA · Thymeleaf · PostgreSQL
+Java 21 · Spring Boot 4.1 · Camunda Platform 7.24 · Spring Data JPA · Thymeleaf ·
+PostgreSQL · Apache Kafka · Keycloak · Spring Security (OAuth2 resource server)

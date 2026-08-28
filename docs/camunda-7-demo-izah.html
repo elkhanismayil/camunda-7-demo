@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<title>Camunda 7 Demo — Ətraflı Texniki İzah</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  @page :first { margin: 0; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1a1a1a;
+    margin: 0;
+  }
+
+  /* ---------- cover ---------- */
+  .cover {
+    height: 297mm;
+    background: linear-gradient(160deg, #0d2b45 0%, #14456b 55%, #1b6ca8 100%);
+    color: #fff;
+    padding: 45mm 22mm 20mm 22mm;
+    page-break-after: always;
+    position: relative;
+  }
+  .cover h1 { font-size: 34pt; line-height: 1.1; margin: 0 0 6mm 0; font-weight: 700; letter-spacing: -0.5px; }
+  .cover .sub { font-size: 14pt; opacity: .92; font-weight: 300; margin-bottom: 16mm; }
+  .cover .meta { font-size: 10pt; opacity: .8; line-height: 1.9; }
+  .cover .badge {
+    display: inline-block; border: 1px solid rgba(255,255,255,.45); border-radius: 3px;
+    padding: 2px 9px; margin: 0 5px 6px 0; font-size: 9pt; opacity: .95;
+  }
+  .cover .rule { width: 60mm; height: 3px; background: #6fc3ff; margin: 0 0 8mm 0; }
+  .cover .foot { position: absolute; bottom: 20mm; left: 22mm; right: 22mm; font-size: 9pt; opacity: .7; }
+
+  /* ---------- headings ---------- */
+  h2 {
+    font-size: 17pt; color: #0d2b45; margin: 0 0 4mm 0; padding-bottom: 2mm;
+    border-bottom: 2px solid #1b6ca8; page-break-after: avoid;
+  }
+  h3 { font-size: 12.5pt; color: #14456b; margin: 7mm 0 2.5mm 0; page-break-after: avoid; }
+  h4 { font-size: 11pt; color: #333; margin: 5mm 0 2mm 0; page-break-after: avoid; }
+  .section { page-break-before: always; }
+
+  p { margin: 0 0 3mm 0; }
+  ul, ol { margin: 0 0 3mm 0; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+
+  code {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 9pt; background: #eef2f6; padding: 1px 4px; border-radius: 3px; color: #0b3d5c;
+  }
+
+  pre {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 8.3pt; line-height: 1.45;
+    background: #1e2733; color: #e6edf3;
+    padding: 4mm 5mm; border-radius: 4px; overflow: visible;
+    white-space: pre-wrap; word-wrap: break-word;
+    margin: 0 0 4mm 0; page-break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  pre .c { color: #8b9bb0; font-style: italic; }   /* comment */
+  pre .k { color: #ff9d6b; }                        /* keyword */
+  pre .s { color: #9ae6a0; }                        /* string */
+  pre .t { color: #7dd3fc; }                        /* type / tag */
+  pre .a { color: #f0c674; }                        /* annotation / attr */
+
+  .lang {
+    font-family: "Cascadia Mono", Consolas, monospace; font-size: 7.5pt;
+    color: #5c6b7a; text-transform: uppercase; letter-spacing: .6px;
+    margin: 0 0 1mm 1mm;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm 0; font-size: 9.2pt; page-break-inside: avoid; }
+  th { background: #0d2b45; color: #fff; text-align: left; padding: 2mm 2.5mm; font-weight: 600; }
+  td { border-bottom: 1px solid #dbe3ea; padding: 2mm 2.5mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f9fb; }
+
+  .box {
+    border-left: 4px solid #1b6ca8; background: #f0f6fb;
+    padding: 3mm 4mm; margin: 0 0 4mm 0; page-break-inside: avoid;
+  }
+  .box.warn { border-left-color: #d9822b; background: #fdf5ec; }
+  .box.danger { border-left-color: #c0392b; background: #fdeeec; }
+  .box.ok { border-left-color: #2d8a4e; background: #eef8f1; }
+  .box .t { font-weight: 700; display: block; margin-bottom: 1.5mm; color: #0d2b45; }
+  .box.warn .t { color: #a4611b; }
+  .box.danger .t { color: #96271b; }
+  .box.ok .t { color: #1f6b3a; }
+
+  figure { margin: 0 0 5mm 0; page-break-inside: avoid; text-align: center; }
+  figure svg { max-width: 100%; height: auto; }
+  figcaption { font-size: 8.5pt; color: #5c6b7a; margin-top: 1.5mm; font-style: italic; }
+
+  .toc { font-size: 10pt; }
+  .toc ol { list-style: none; padding-left: 0; counter-reset: s; }
+  .toc > ol > li { counter-increment: s; margin-bottom: 1.5mm; font-weight: 600; color: #0d2b45; }
+  .toc > ol > li::before { content: counter(s) ". "; color: #1b6ca8; }
+  .toc ol ol { padding-left: 7mm; margin-top: 1mm; }
+  .toc ol ol li { font-weight: 400; color: #444; font-size: 9.3pt; }
+
+  .kv { display: table; width: 100%; }
+  .tag {
+    display: inline-block; font-size: 8pt; padding: 1px 6px; border-radius: 9px;
+    background: #e3edf5; color: #14456b; margin-right: 3px; font-weight: 600;
+  }
+  .tag.red { background: #fbe3e0; color: #96271b; }
+  .tag.green { background: #e0f2e7; color: #1f6b3a; }
+  .tag.amber { background: #fcf0dd; color: #a4611b; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="rule"></div>
+  <h1>Camunda 7<br>Demo Layihəsi</h1>
+  <div class="sub">Arxitektura, proses modeli və 8 mövzunun<br>ən xırda detallarına qədər texniki izahı</div>
+  <div>
+    <span class="badge">Message Correlation</span>
+    <span class="badge">DMN</span>
+    <span class="badge">Saga / Compensation</span>
+    <span class="badge">Async &amp; Incidents</span>
+    <span class="badge">Migration</span>
+    <span class="badge">External Task</span>
+    <span class="badge">Kafka + Outbox</span>
+    <span class="badge">OAuth2 / OIDC</span>
+  </div>
+  <div class="meta" style="margin-top:14mm">
+    Java 21 &nbsp;·&nbsp; Spring Boot 4.1 &nbsp;·&nbsp; Camunda Platform 7.24<br>
+    PostgreSQL &nbsp;·&nbsp; Apache Kafka &nbsp;·&nbsp; Keycloak &nbsp;·&nbsp; Thymeleaf<br>
+    32 test &nbsp;·&nbsp; 13 test klası &nbsp;·&nbsp; 0 failure
+  </div>
+  <div class="foot">github.com/elkhanismayil/camunda-7-demo</div>
+</div>
+
+<h2>Mündəricat</h2>
+<div class="toc">
+<ol>
+  <li>Layihə haqqında
+    <ol>
+      <li>Nə edir və niyə belə qurulub</li>
+      <li>Arxitektura</li>
+      <li>Repo strukturu</li>
+    </ol>
+  </li>
+  <li>Camunda 7 əsasları — bu layihədə
+    <ol>
+      <li>Embedded engine vs standalone server</li>
+      <li>Engine-in verilənlər bazası cədvəlləri</li>
+      <li>Deployment necə baş verir</li>
+    </ol>
+  </li>
+  <li>Proses modeli — element-element</li>
+  <li><code>correlationId</code> və Message Correlation</li>
+  <li>Bənd 1 — Testing (<code>camunda-bpm-assert</code>)</li>
+  <li>Bənd 2 — DMN qərar cədvəli</li>
+  <li>Bənd 3 — Saga və Compensation</li>
+  <li>Bənd 4 — Engine daxili: async, retry, incident</li>
+  <li>Bənd 5 — Versiyalaşma və migration</li>
+  <li>Bənd 6 — External Task pattern</li>
+  <li>Bənd 7 — Kafka və Transactional Outbox</li>
+  <li>Bənd 8 — OAuth2 / OIDC</li>
+  <li>Yol boyu qarşılaşdığım real problemlər</li>
+  <li>Müsahibə üçün sual-cavab</li>
+  <li>İşə salma təlimatı</li>
+</ol>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<div class="section">
+<h2>1. Layihə haqqında</h2>
+
+<h3>1.1 Nə edir və niyə belə qurulub</h3>
+<p>
+Layihə bir <strong>sifariş-ödəniş prosesi</strong>ni modelləşdirir. Sifariş yaradılır, riski
+qiymətləndirilir, ödəniş gözlənilir — və ya vaxt bitir. Ödəniş gələndə çatdırılma bildirişi
+göndərilir, invoice yaradılır, proses bitir. Çatdırılma uğursuz olarsa ödəniş geri qaytarılır.
+</p>
+<p>
+Bu ssenari qəsdən <em>kiçik</em> seçilib: məqsəd çox funksiya deyil, bir dənə real axının
+üzərində Camunda-nın bütün ciddi mexanizmlərini göstərməkdir. Hər mexanizm süni bir "demo
+addımı" kimi deyil, həmin axının təbii hissəsi kimi oturur.
+</p>
+
+<div class="box">
+  <span class="t">Əsas prinsip</span>
+  UI (Thymeleaf) və REST API <strong>eyni</strong> <code>OrderService</code>-i çağırır. Yəni
+  brauzerdə klikləmək paralel bir kod yolunu deyil, real engine-i işlədir. Demo ilə "əsl" kod
+  arasında fərq yoxdur.
+</div>
+
+<h3>1.2 Arxitektura</h3>
+
+<figure>
+<svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="11">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#5c6b7a"/>
+    </marker>
+  </defs>
+
+  <!-- Spring Boot process box -->
+  <rect x="180" y="20" width="360" height="250" rx="8" fill="#f0f6fb" stroke="#1b6ca8" stroke-width="2"/>
+  <text x="360" y="40" text-anchor="middle" font-weight="700" fill="#0d2b45" font-size="12">Spring Boot prosesi (port 8082)</text>
+
+  <!-- inner components -->
+  <rect x="198" y="55" width="150" height="38" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="273" y="72" text-anchor="middle" font-size="10" font-weight="600">Thymeleaf UI</text>
+  <text x="273" y="85" text-anchor="middle" font-size="9" fill="#5c6b7a">/orders</text>
+
+  <rect x="372" y="55" width="150" height="38" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="447" y="72" text-anchor="middle" font-size="10" font-weight="600">REST API</text>
+  <text x="447" y="85" text-anchor="middle" font-size="9" fill="#5c6b7a">/api/orders · OAuth2</text>
+
+  <rect x="198" y="105" width="324" height="34" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="360" y="126" text-anchor="middle" font-size="10" font-weight="600">OrderService</text>
+
+  <rect x="198" y="151" width="324" height="52" rx="5" fill="#dcecf8" stroke="#1b6ca8" stroke-width="1.5"/>
+  <text x="360" y="171" text-anchor="middle" font-size="11" font-weight="700" fill="#0d2b45">Camunda Engine (embedded)</text>
+  <text x="360" y="186" text-anchor="middle" font-size="9" fill="#3f5a70">BPMN · DMN · Job Executor · History</text>
+  <text x="360" y="198" text-anchor="middle" font-size="9" fill="#3f5a70">Webapps: /camunda</text>
+
+  <rect x="198" y="215" width="103" height="40" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="249" y="232" text-anchor="middle" font-size="9.5" font-weight="600">InvoiceWorker</text>
+  <text x="249" y="245" text-anchor="middle" font-size="8.5" fill="#5c6b7a">external task</text>
+
+  <rect x="308" y="215" width="103" height="40" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="359" y="232" text-anchor="middle" font-size="9.5" font-weight="600">OutboxPublisher</text>
+  <text x="359" y="245" text-anchor="middle" font-size="8.5" fill="#5c6b7a">@Scheduled</text>
+
+  <rect x="419" y="215" width="103" height="40" rx="5" fill="#fff" stroke="#8fb8d4"/>
+  <text x="470" y="232" text-anchor="middle" font-size="9.5" font-weight="600">PaymentEvent</text>
+  <text x="470" y="245" text-anchor="middle" font-size="8.5" fill="#5c6b7a">@KafkaListener</text>
+
+  <!-- external systems -->
+  <rect x="20" y="150" width="130" height="54" rx="6" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="85" y="172" text-anchor="middle" font-size="10.5" font-weight="700">PostgreSQL</text>
+  <text x="85" y="187" text-anchor="middle" font-size="8.5" fill="#5c6b7a">engine + demo_order</text>
+  <text x="85" y="198" text-anchor="middle" font-size="8.5" fill="#5c6b7a">+ outbox_event</text>
+
+  <rect x="570" y="70" width="130" height="48" rx="6" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="635" y="90" text-anchor="middle" font-size="10.5" font-weight="700">Keycloak</text>
+  <text x="635" y="105" text-anchor="middle" font-size="8.5" fill="#5c6b7a">:8083 · OIDC</text>
+
+  <rect x="570" y="200" width="130" height="60" rx="6" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="635" y="220" text-anchor="middle" font-size="10.5" font-weight="700">Apache Kafka</text>
+  <text x="635" y="235" text-anchor="middle" font-size="8.5" fill="#5c6b7a">payment-events</text>
+  <text x="635" y="247" text-anchor="middle" font-size="8.5" fill="#5c6b7a">order-events</text>
+
+  <!-- arrows -->
+  <line x1="180" y1="177" x2="152" y2="177" stroke="#5c6b7a" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="522" y1="94" x2="568" y2="94" stroke="#5c6b7a" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="524" y1="235" x2="568" y2="230" stroke="#5c6b7a" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="568" y1="245" x2="524" y2="245" stroke="#5c6b7a" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <text x="300" y="300" font-size="9.5" fill="#5c6b7a">Xarici asılılıq yalnız 3 konteynerdir. Engine <tspan font-weight="700">tətbiqin içindədir</tspan> —</text>
+  <text x="300" y="315" font-size="9.5" fill="#5c6b7a">ayrıca Camunda serveri yoxdur.</text>
+  <line x1="180" y1="295" x2="292" y2="295" stroke="#1b6ca8" stroke-width="2"/>
+</svg>
+<figcaption>Şəkil 1 — Ümumi arxitektura. Engine ayrıca server deyil, Spring Boot prosesinin içində kitabxana kimi işləyir.</figcaption>
+</figure>
+
+<h3>1.3 Repo strukturu</h3>
+<div class="lang">tree</div>
+<pre><code>src/main/java/az/company/camunda/
+├── Camunda7DemoApplication.java     <span class="c">// @EnableScheduling</span>
+├── order/
+│   ├── Order.java  OrderStatus.java  OrderRepository.java
+│   ├── OrderService.java             <span class="c">// UI + REST üçün ortaq</span>
+│   ├── OrderController.java          <span class="c">// /api/orders</span>
+│   ├── OrderViewController.java      <span class="c">// /orders (Thymeleaf)</span>
+│   ├── CreateOrderDelegate.java      MarkOrderPaidDelegate.java
+│   ├── CancelOrderDelegate.java      RevertPaymentDelegate.java
+│   ├── NotifyShippingDelegate.java   <span class="c">// BpmnError vs Exception</span>
+│   └── InvoiceWorker.java            <span class="c">// external task worker</span>
+├── events/
+│   ├── OutboxEvent.java  OutboxEventRepository.java
+│   ├── OrderEventOutbox.java         <span class="c">// tranzaksiya daxilində yazır</span>
+│   ├── OutboxPublisher.java          <span class="c">// commit-dən sonra Kafka-ya</span>
+│   ├── PaymentEventConsumer.java     <span class="c">// Kafka → correlation</span>
+│   └── KafkaConfig.java              <span class="c">// topic-lər, DLT, error handler</span>
+└── security/
+    ├── SecurityConfig.java           <span class="c">// 3 filter chain</span>
+    └── KeycloakRealmRoleConverter.java
+
+src/main/resources/
+├── order-payment-correlation.bpmn    <span class="c">// əsas proses</span>
+├── payment-risk-assessment.dmn       <span class="c">// qərar cədvəli</span>
+├── application.yaml
+└── templates/orders/index.html
+
+keycloak/realm-camunda-demo.json      <span class="c">// realm import</span>
+docker-compose.yml                    <span class="c">// Kafka + Keycloak</span></code></pre>
+</div>
+
+<!-- ==================== 2 ==================== -->
+<div class="section">
+<h2>2. Camunda 7 əsasları — bu layihədə</h2>
+
+<h3>2.1 Embedded engine vs standalone server</h3>
+<p>
+Camunda 7-ni işə salmağın iki yolu var və bu, müsahibədə tez-tez qarışdırılır:
+</p>
+<table>
+<tr><th style="width:22%">Yanaşma</th><th>Necə işləyir</th><th style="width:28%">Nə vaxt</th></tr>
+<tr>
+  <td><strong>Embedded</strong><br><span class="tag green">bu layihə</span></td>
+  <td>Engine sizin tətbiqin JVM-ində kitabxana kimi qalxır. <code>RuntimeService</code>,
+      <code>TaskService</code> adi Spring bean-ləridir. Delegate-lər sizin bean-lərinizdir.
+      Engine sizin tranzaksiyanızı paylaşır.</td>
+  <td>Bir tətbiq bir prosesə sahibdir. Mikroservis arxitekturası.</td>
+</tr>
+<tr>
+  <td><strong>Standalone</strong></td>
+  <td>Ayrıca server (Tomcat/WildFly). Tətbiqlər ona REST ilə müraciət edir. Delegate-lər serverin
+      classpath-ində olmalıdır — ya da external task istifadə edilir.</td>
+  <td>Bir çox komanda bir engine-i paylaşır. Mərkəzi BPM platforması.</td>
+</tr>
+</table>
+
+<div class="lang">build.gradle</div>
+<pre><code><span class="c">// Bu bir sətir engine-i tətbiqin içinə gətirir.</span>
+implementation <span class="s">"org.camunda.bpm.springboot:camunda-bpm-spring-boot-starter-webapp:7.24.0"</span></code></pre>
+
+<div class="box warn">
+  <span class="t">Diqqət: paylaşılan tranzaksiya</span>
+  Embedded rejimdə <code>orderRepository.save(...)</code> ilə engine-in öz yazıları
+  <strong>eyni tranzaksiyadadır</strong>. Bu, Bənd 7-dəki outbox pattern-inin işləməsinin
+  səbəbidir — və eyni zamanda delegate-də atılan istisnanın proses addımını da geri qaytarmasının
+  səbəbi.
+</div>
+
+<h3>2.2 Engine-in verilənlər bazası cədvəlləri</h3>
+<p>Camunda öz sxemini avtomatik yaradır (<code>camunda.bpm.database.schema-update: true</code>).
+Debug edərkən bilməli olduğunuz cədvəllər:</p>
+<table>
+<tr><th style="width:24%">Cədvəl</th><th style="width:14%">Prefiks</th><th>Nə saxlayır</th></tr>
+<tr><td><code>act_re_procdef</code></td><td>RE = repository</td><td>Deploy olunmuş proses tərifləri. <code>key_</code>, <code>version_</code>, <code>deployment_id_</code>. <em>Bənd 5 burada oxunur.</em></td></tr>
+<tr><td><code>act_re_deployment</code></td><td>RE</td><td>Hər deployment bir sətir.</td></tr>
+<tr><td><code>act_ru_execution</code></td><td>RU = runtime</td><td><strong>İşləyən</strong> instansiyalar və onların execution ağacı. <code>proc_def_id_</code>, <code>business_key_</code>.</td></tr>
+<tr><td><code>act_ru_variable</code></td><td>RU</td><td>Proses dəyişənləri — <code>correlationId</code>, <code>amount</code>, <code>riskLevel</code> burada.</td></tr>
+<tr><td><code>act_ru_task</code></td><td>RU</td><td>Aktiv user task-lar.</td></tr>
+<tr><td><code>act_ru_job</code></td><td>RU</td><td>Timer və async job-lar. <code>retries_</code> sütunu <em>Bənd 4</em>-ün mövzusudur.</td></tr>
+<tr><td><code>act_ru_incident</code></td><td>RU</td><td>Retry-ları bitmiş job-lar. <code>incident_type_ = failedJob</code>.</td></tr>
+<tr><td><code>act_ru_ext_task</code></td><td>RU</td><td>External task-lar. <code>topic_name_</code>, <code>worker_id_</code>, <code>lock_exp_time_</code>. <em>Bənd 6.</em></td></tr>
+<tr><td><code>act_ru_event_subscr</code></td><td>RU</td><td>Mesaj/siqnal abunəlikləri. <code>PaymentReceived</code> gözləyən instansiyalar burada.</td></tr>
+<tr><td><code>act_hi_*</code></td><td>HI = history</td><td>Bitmiş hər şeyin arxivi. <code>historyTimeToLive</code> nə qədər saxlanacağını deyir.</td></tr>
+</table>
+
+<div class="box danger">
+  <span class="t">historyTimeToLive məcburidir</span>
+  Camunda 7.20-dən sonra <code>historyTimeToLive</code> təyin edilməyən proses deploy olunmur.
+  Bu layihədə hər BPMN və DMN-də <code>camunda:historyTimeToLive="180"</code> var. Səbəb: TTL-siz
+  tarixçə cədvəlləri sonsuz böyüyür və bir gün bazanı doldurur.
+</div>
+
+<h3>2.3 Deployment necə baş verir</h3>
+<p>
+Spring Boot starter startup-da <code>classpath*:**/*.bpmn</code>, <code>**/*.dmn</code> pattern-i
+ilə skan edir və tapdığı hər şeyi deploy edir. Fayl dəyişməyibsə yeni versiya yaratmır (checksum
+müqayisəsi).
+</p>
+<div class="box warn">
+  <span class="t">Bu avtomatik skan real problem yaratdı</span>
+  Bənd 5-də (migration) v1/v2/v3 modellərini test resource-larına fayl kimi qoysaydım,
+  <strong>üçü də context qalxanda deploy olunardı</strong> və versiyalaşmanı müşahidə etmək mümkün
+  olmazdı. Ona görə o testdə modellər BPMN Model API ilə kodda qurulur.
+</div>
+</div>
+
+<!-- ==================== 3 ==================== -->
+<div class="section">
+<h2>3. Proses modeli — element-element</h2>
+
+<figure>
+<svg viewBox="0 0 730 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs>
+    <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto">
+      <path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/>
+    </marker>
+  </defs>
+  <style>
+    .task { fill:#fff; stroke:#1b6ca8; stroke-width:1.6; }
+    .tk2  { fill:#fff7e6; stroke:#d9822b; stroke-width:1.6; }
+    .tk3  { fill:#fdeeec; stroke:#c0392b; stroke-width:1.6; }
+    .lbl  { font-size:9px; text-anchor:middle; }
+    .sub  { font-size:7.5px; text-anchor:middle; fill:#6b7a89; }
+    .fl   { stroke:#4a5a6a; stroke-width:1.3; fill:none; marker-end:url(#a2); }
+    .fld  { stroke:#4a5a6a; stroke-width:1.3; fill:none; stroke-dasharray:4 3; marker-end:url(#a2); }
+  </style>
+
+  <!-- row 1 -->
+  <circle cx="30" cy="45" r="13" fill="#fff" stroke="#2d8a4e" stroke-width="2"/>
+  <text x="30" y="72" class="sub">Order Created</text>
+
+  <rect x="60" y="25" width="82" height="40" rx="5" class="task"/>
+  <text x="101" y="42" class="lbl">Create Order</text>
+  <text x="101" y="54" class="sub">delegate</text>
+
+  <rect x="160" y="25" width="82" height="40" rx="5" class="tk2"/>
+  <text x="201" y="42" class="lbl">Assess Risk</text>
+  <text x="201" y="54" class="sub">DMN business rule</text>
+
+  <path d="M285,45 L305,25 L325,45 L305,65 Z" fill="#fff" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="305" y="48" class="lbl" font-size="11">×</text>
+  <text x="305" y="80" class="sub">High Risk?</text>
+
+  <rect x="360" y="12" width="86" height="38" rx="5" class="task"/>
+  <text x="403" y="28" class="lbl">Manual Review</text>
+  <text x="403" y="40" class="sub">user task</text>
+
+  <line x1="43" y1="45" x2="58" y2="45" class="fl"/>
+  <line x1="142" y1="45" x2="158" y2="45" class="fl"/>
+  <line x1="242" y1="45" x2="283" y2="45" class="fl"/>
+  <path d="M305,25 L305,14 L358,14" class="fl"/>
+  <text x="330" y="10" class="sub" text-anchor="start">riskLevel == HIGH</text>
+  <path d="M325,45 L500,45" class="fl"/>
+  <text x="410" y="58" class="sub">default</text>
+  <path d="M446,31 L500,31 L500,42" class="fl"/>
+
+  <!-- event gateway -->
+  <circle cx="520" cy="45" r="15" fill="#fff" stroke="#1b6ca8" stroke-width="1.8"/>
+  <path d="M513,38 L527,38 L527,52 L513,52 Z" fill="none" stroke="#1b6ca8" stroke-width="1"/>
+  <text x="520" y="76" class="sub">Wait for Event</text>
+  <text x="520" y="86" class="sub">(event-based gateway)</text>
+
+  <!-- branch: message -->
+  <circle cx="600" cy="135" r="13" fill="#fff" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="600" y="139" class="lbl" font-size="10">✉</text>
+  <text x="600" y="162" class="sub">Payment Received</text>
+  <path d="M528,56 L600,56 L600,120" class="fl"/>
+
+  <!-- branch: timer -->
+  <circle cx="440" cy="135" r="13" fill="#fff" stroke="#c0392b" stroke-width="1.6"/>
+  <text x="440" y="139" class="lbl" font-size="10">⏱</text>
+  <text x="440" y="162" class="sub">Timeout PT1H</text>
+  <path d="M512,56 L440,56 L440,120" class="fl"/>
+
+  <!-- cancel branch -->
+  <rect x="399" y="185" width="82" height="38" rx="5" class="tk3"/>
+  <text x="440" y="201" class="lbl">Cancel Order</text>
+  <text x="440" y="213" class="sub">delegate</text>
+  <line x1="440" y1="148" x2="440" y2="183" class="fl"/>
+  <circle cx="440" cy="255" r="13" fill="#fff" stroke="#c0392b" stroke-width="2.5"/>
+  <line x1="440" y1="223" x2="440" y2="240" class="fl"/>
+  <text x="440" y="282" class="sub">Order Cancelled</text>
+
+  <!-- paid branch -->
+  <rect x="559" y="185" width="82" height="38" rx="5" class="task"/>
+  <text x="600" y="201" class="lbl">Mark Paid</text>
+  <text x="600" y="213" class="sub">delegate</text>
+  <line x1="600" y1="148" x2="600" y2="183" class="fl"/>
+
+  <rect x="559" y="255" width="82" height="42" rx="5" class="task"/>
+  <text x="600" y="271" class="lbl">Notify Shipping</text>
+  <text x="600" y="282" class="sub">asyncBefore</text>
+  <text x="600" y="292" class="sub">R3/PT10S</text>
+  <line x1="600" y1="223" x2="600" y2="253" class="fl"/>
+
+  <rect x="559" y="330" width="82" height="40" rx="5" class="tk2"/>
+  <text x="600" y="346" class="lbl">Generate Invoice</text>
+  <text x="600" y="358" class="sub">external task</text>
+  <line x1="600" y1="297" x2="600" y2="328" class="fl"/>
+
+  <circle cx="600" cy="400" r="13" fill="#fff" stroke="#2d8a4e" stroke-width="2.5"/>
+  <line x1="600" y1="370" x2="600" y2="385" class="fl"/>
+  <text x="600" y="427" class="sub">Order Completed</text>
+
+  <!-- compensation -->
+  <circle cx="559" cy="276" r="9" fill="#fff" stroke="#c0392b" stroke-width="1.4"/>
+  <text x="559" y="280" font-size="9" text-anchor="middle" fill="#c0392b">!</text>
+  <path d="M550,276 L470,276 L470,300" class="fl"/>
+  <text x="500" y="271" class="sub">BpmnError</text>
+
+  <rect x="429" y="300" width="82" height="36" rx="5" class="tk3"/>
+  <text x="470" y="315" class="lbl">Throw</text>
+  <text x="470" y="327" class="sub">Compensation</text>
+
+  <circle cx="559" cy="223" r="9" fill="#fff" stroke="#6b4fa0" stroke-width="1.4"/>
+  <text x="559" y="227" font-size="9" text-anchor="middle" fill="#6b4fa0">↺</text>
+  <rect x="290" y="150" width="92" height="38" rx="5" fill="#f3eefb" stroke="#6b4fa0" stroke-width="1.6"/>
+  <text x="336" y="166" class="lbl">Revert Payment</text>
+  <text x="336" y="178" class="sub">isForCompensation</text>
+  <path d="M550,223 L392,223 L392,169 L384,169" class="fld"/>
+
+  <circle cx="470" cy="380" r="13" fill="#fff" stroke="#6b4fa0" stroke-width="2.5"/>
+  <line x1="470" y1="336" x2="470" y2="365" class="fl"/>
+  <text x="470" y="407" class="sub">Payment Reversed</text>
+
+  <!-- legend -->
+  <rect x="20" y="330" width="12" height="10" class="task"/>
+  <text x="38" y="339" font-size="8.5" fill="#4a5a6a">Java Delegate</text>
+  <rect x="20" y="350" width="12" height="10" class="tk2"/>
+  <text x="38" y="359" font-size="8.5" fill="#4a5a6a">DMN / External task</text>
+  <rect x="20" y="370" width="12" height="10" class="tk3"/>
+  <text x="38" y="379" font-size="8.5" fill="#4a5a6a">Xəta / ləğv yolu</text>
+  <rect x="20" y="390" width="12" height="10" fill="#f3eefb" stroke="#6b4fa0" stroke-width="1.6"/>
+  <text x="38" y="399" font-size="8.5" fill="#4a5a6a">Compensation handler</text>
+</svg>
+<figcaption>Şəkil 2 — <code>order-payment-correlation.bpmn</code> tam axını. Kəsik xətt kompensasiya bağlantısıdır (sequence flow deyil).</figcaption>
+</figure>
+
+<h3>Element-element</h3>
+<table>
+<tr><th style="width:27%">Element</th><th style="width:17%">Tip</th><th>Rolu</th></tr>
+<tr><td><code>StartEvent_OrderCreated</code></td><td>Start event</td><td>Proses <code>startProcessInstanceByKey</code> ilə başlayır, business key = <code>correlationId</code>.</td></tr>
+<tr><td><code>Task_CreateOrder</code></td><td>Service (delegate)</td><td><code>demo_order</code> cədvəlinə sətir yazır.</td></tr>
+<tr><td><code>Task_AssessRisk</code></td><td>Business rule</td><td>DMN cədvəlini işlədir, nəticəni <code>riskLevel</code> dəyişəninə yazır.</td></tr>
+<tr><td><code>Gateway_RiskCheck</code></td><td>Exclusive gateway</td><td><code>riskLevel == "HIGH"</code> → review; əks halda default axın.</td></tr>
+<tr><td><code>Task_ManualReview</code></td><td>User task</td><td><code>candidateGroups="risk-review"</code>. Tasklist-də görünür.</td></tr>
+<tr><td><code>Gateway_WaitForEvent</code></td><td>Event-based gateway</td><td>İki hadisə arasında yarış: mesaj, yoxsa timer.</td></tr>
+<tr><td><code>Event_PaymentReceived</code></td><td>Message catch</td><td><code>PaymentReceived</code> mesajını gözləyir.</td></tr>
+<tr><td><code>Event_PaymentTimeout</code></td><td>Timer catch</td><td><code>PT1H</code> — bir saat.</td></tr>
+<tr><td><code>Task_MarkPaid</code></td><td>Service (delegate)</td><td>Status → PAID, outbox-a <code>ORDER_PAID</code> yazır. <strong>Kompensasiya olunandır.</strong></td></tr>
+<tr><td><code>Task_NotifyShipping</code></td><td>Service (delegate)</td><td><code>asyncBefore</code> + <code>R3/PT10S</code>. Biznes xətası → kompensasiya; texniki xəta → retry.</td></tr>
+<tr><td><code>Task_GenerateInvoice</code></td><td>Service (external)</td><td>Topic <code>invoice-generation</code>. Wait state.</td></tr>
+<tr><td><code>Task_RevertPayment</code></td><td>Compensation handler</td><td><code>isForCompensation="true"</code> — normal axında <em>heç vaxt</em> işləmir.</td></tr>
+</table>
+</div>
+
+<!-- ==================== 4 ==================== -->
+<div class="section">
+<h2>4. <code>correlationId</code> və Message Correlation</h2>
+
+<h3>Problem</h3>
+<p>
+Fərz edin ki, eyni anda 10 000 sifariş prosesi işləyir və hər biri öz ödənişini gözləyir.
+Ödəniş provayderindən webhook gəlir: <em>"filan sifariş ödənildi"</em>. Sual: <strong>bu bildiriş
+10 000 instansiyadan hansına aiddir?</strong>
+</p>
+<p>
+Naiv cavab — process instance id saxlamaq. Amma xarici sistem sizin engine-inizin daxili
+id-lərini bilmir və bilməməlidir. Bizim tərəfdə isə həmin id yalnız proses başladıqdan sonra
+yaranır.
+</p>
+
+<div class="box ok">
+  <span class="t">Həll: biznes açarı ilə korrelyasiya</span>
+  <code>correlationId</code> — <strong>bizim</strong> yaratdığımız biznes identifikatorudur.
+  Həm <code>demo_order</code> cədvəlində sütun, həm proses dəyişəni, həm də BPMN business key kimi
+  saxlanılır. Xarici sistem yalnız bunu bilir.
+</div>
+
+<figure>
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="a3" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c0392b"/></marker></defs>
+
+  <rect x="20" y="20" width="150" height="46" rx="6" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="95" y="40" text-anchor="middle" font-weight="700" font-size="10.5">Ödəniş provayderi</text>
+  <text x="95" y="55" text-anchor="middle" font-size="8.5" fill="#5c6b7a">webhook / Kafka event</text>
+
+  <rect x="20" y="90" width="150" height="34" rx="4" fill="#fdeeec" stroke="#c0392b"/>
+  <text x="95" y="111" text-anchor="middle" font-size="9">correlationId = "abc-123"</text>
+
+  <text x="230" y="20" font-size="9.5" fill="#5c6b7a">İşləyən instansiyalar (hamısı gözləyir):</text>
+
+  <rect x="230" y="30" width="200" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="240" y="49" font-size="9">instance #1 · correlationId = "xyz-001"</text>
+  <rect x="230" y="68" width="200" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="240" y="87" font-size="9">instance #2 · correlationId = "def-777"</text>
+  <rect x="230" y="106" width="200" height="30" rx="4" fill="#eef8f1" stroke="#2d8a4e" stroke-width="2"/>
+  <text x="240" y="125" font-size="9" font-weight="700">instance #3 · correlationId = "abc-123"</text>
+  <rect x="230" y="144" width="200" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="240" y="163" font-size="9">instance #4 · correlationId = "ghi-042"</text>
+  <text x="240" y="196" font-size="9" fill="#5c6b7a">… 9 996 instansiya daha</text>
+
+  <path d="M172,107 L226,121" stroke="#c0392b" stroke-width="2" fill="none" marker-end="url(#a3)"/>
+
+  <rect x="470" y="100" width="210" height="46" rx="6" fill="#eef8f1" stroke="#2d8a4e"/>
+  <text x="575" y="120" text-anchor="middle" font-size="9.5" font-weight="700">Yalnız #3 irəliləyir</text>
+  <text x="575" y="135" text-anchor="middle" font-size="8.5" fill="#3f5a70">qalan 9 999 toxunulmaz qalır</text>
+  <line x1="434" y1="121" x2="466" y2="121" stroke="#2d8a4e" stroke-width="2"/>
+
+  <text x="230" y="228" font-size="9" fill="#5c6b7a" font-family="Consolas, monospace">act_ru_event_subscr → engine indeksli axtarış edir, döngü yoxdur</text>
+</svg>
+<figcaption>Şəkil 3 — Message correlation: biznes açarı minlərlə gözləyən instansiyadan tam birini tapır.</figcaption>
+</figure>
+
+<h3>Kod</h3>
+<div class="lang">OrderService.java</div>
+<pre><code><span class="k">public</span> ProcessInstance <span class="t">createOrder</span>(String customerName, BigDecimal amount) {
+    String correlationId = UUID.randomUUID().toString();   <span class="c">// biznes açarı BİZ yaradırıq</span>
+
+    Map&lt;String, Object&gt; variables = <span class="k">new</span> HashMap&lt;&gt;();
+    variables.put(<span class="s">"correlationId"</span>, correlationId);
+    variables.put(<span class="s">"customerName"</span>, customerName);
+    variables.put(<span class="s">"amount"</span>, amount);
+
+    <span class="c">// 2-ci arqument = business key. Cockpit-də axtarış üçün, həm də</span>
+    <span class="c">// processInstanceBusinessKey() sorğuları üçün.</span>
+    <span class="k">return</span> runtimeService.startProcessInstanceByKey(PROCESS_KEY, correlationId, variables);
+}
+
+<span class="k">public boolean</span> <span class="t">notifyPaymentReceived</span>(String correlationId) {
+    <span class="k">try</span> {
+        runtimeService.createMessageCorrelation(<span class="s">"PaymentReceived"</span>)
+                .processInstanceVariableEquals(<span class="s">"correlationId"</span>, correlationId)
+                .correlateWithResult();
+        <span class="k">return true</span>;
+    } <span class="k">catch</span> (MismatchingMessageCorrelationException e) {
+        <span class="c">// Ya belə instansiya yoxdur, ya da o, hazırda mesaj gözləmir.</span>
+        <span class="c">// Bu fərq Bənd 7-də həlledici olur.</span>
+        <span class="k">return false</span>;
+    }
+}</code></pre>
+
+<h3>Korrelyasiya metodlarının fərqi</h3>
+<table>
+<tr><th style="width:34%">Metod</th><th>Davranış</th></tr>
+<tr><td><code>correlate()</code></td><td>Tam bir instansiya tapmalıdır. Tapmazsa və ya birdən çox taparsa istisna atır.</td></tr>
+<tr><td><code>correlateWithResult()</code></td><td>Eyni, amma nəticə obyekti qaytarır (hansı instansiya, hansı tip).</td></tr>
+<tr><td><code>correlateAll()</code></td><td>Uyğun gələn <strong>hamısını</strong> irəlilədir. Broadcast üçün.</td></tr>
+<tr><td><code>correlateExclusively()</code></td><td>Pessimistik kilid alır. Eyni instansiyaya paralel mesajlar gələndə optimistic locking istisnalarının qarşısını alır.</td></tr>
+</table>
+
+<div class="box warn">
+  <span class="t">Testdə tapdığım incəlik</span>
+  Event-based gateway arxasında park olunmuş execution-lar ActivityInstance ağacında
+  <strong>catch event-in deyil, gateway-in öz activity id-si</strong> ilə görünür. Yəni
+  <code>isWaitingAt("Event_PaymentReceived")</code> yox, <code>isWaitingAt("Gateway_WaitForEvent")</code>
+  yazmaq lazımdır. Bunu ağacı çap edərək tapdım — sənəddə açıq yazılmır.
+</div>
+
+<div class="lang">OrderPaymentCorrelationTest.java — mahiyyət</div>
+<pre><code>ProcessInstance instanceA = start(correlationIdA);   <span class="c">// Alice</span>
+ProcessInstance instanceB = start(correlationIdB);   <span class="c">// Bob</span>
+
+assertThat(instanceA).isWaitingAt(<span class="s">"Gateway_WaitForEvent"</span>);
+assertThat(instanceB).isWaitingAt(<span class="s">"Gateway_WaitForEvent"</span>);
+
+runtimeService.createMessageCorrelation(<span class="s">"PaymentReceived"</span>)
+        .processInstanceVariableEquals(<span class="s">"correlationId"</span>, correlationIdA)
+        .correlateWithResult();
+
+<span class="c">// A irəlilədi, B toxunulmadı — korrelyasiyanın bütün mahiyyəti budur.</span>
+assertThat(instanceB).isNotEnded().isWaitingAt(<span class="s">"Gateway_WaitForEvent"</span>);
+assertThat(orderRepository.findByCorrelationId(correlationIdB).orElseThrow().getStatus())
+        .isEqualTo(OrderStatus.AWAITING_PAYMENT);</code></pre>
+</div>
+
+<!-- ==================== 5 ==================== -->
+<div class="section">
+<h2>5. Bənd 1 — Testing (<code>camunda-bpm-assert</code>)</h2>
+
+<p>
+Prosesi test etmək adi unit testdən fərqlidir: sınadığınız şey bir metodun qaytardığı dəyər deyil,
+<strong>token-in modeldə hansı yolu getməsidir</strong>. <code>camunda-bpm-assert</code> məhz bunun
+üçün fluent API verir.
+</p>
+
+<div class="lang">build.gradle</div>
+<pre><code>testImplementation <span class="s">"org.camunda.bpm:camunda-bpm-assert:7.24.0"</span></code></pre>
+
+<h3>Əsas assertion-lar</h3>
+<table>
+<tr><th style="width:36%">Assertion</th><th>Nə yoxlayır</th></tr>
+<tr><td><code>assertThat(pi).isEnded()</code></td><td>İnstansiya bitib.</td></tr>
+<tr><td><code>assertThat(pi).isNotEnded()</code></td><td>Hələ işləyir.</td></tr>
+<tr><td><code>assertThat(pi).isWaitingAt("Id")</code></td><td>Göstərilən activity-də dayanıb.</td></tr>
+<tr><td><code>assertThat(pi).hasPassed("A", "B")</code></td><td>Bu activity-lərdən <em>keçib</em> (tarixçəyə baxır).</td></tr>
+<tr><td><code>assertThat(pi).hasVariables("x")</code></td><td>Dəyişən mövcuddur.</td></tr>
+<tr><td><code>assertThat(task).hasCandidateGroup("g")</code></td><td>User task-ın qrupu.</td></tr>
+</table>
+
+<h3>Determinizm — ən vacib qərar</h3>
+<div class="box">
+  <span class="t">Test profilində job executor söndürülüb</span>
+  <div class="lang" style="margin-top:2mm">application-test.yaml</div>
+  <pre style="margin-bottom:0"><code>camunda.bpm:
+  job-execution:
+    enabled: <span class="k">false</span>   <span class="c"># testlər job-ları özləri işə salır</span></code></pre>
+</div>
+<p>
+Səbəb: job executor arxa fon thread-idir. Açıq qalsa test ilə onun arasında yarış olur —
+bəzən keçən, bəzən keçməyən test alırsınız. Söndürüb job-ları əl ilə icra etmək testi
+<strong>tam determinik</strong> edir:
+</p>
+<div class="lang">Java</div>
+<pre><code>Job job = managementService.createJobQuery().processInstanceId(pi.getId()).singleResult();
+managementService.executeJob(job.getId());   <span class="c">// indi, bu thread-də, sinxron</span></code></pre>
+
+<h3>Timer-i "gözləmədən" sınamaq</h3>
+<p>
+Timeout <code>PT1H</code>-dir. Testdə bir saat gözləmək absurd olardı. <code>ClockUtil</code> engine-in
+saat mənbəyini əvəz edir:
+</p>
+<div class="lang">OrderPaymentTimeoutTest.java</div>
+<pre><code><span class="c">// Engine-in "indi"sini bir saat bir dəqiqə irəli çəkirik.</span>
+ClockUtil.setCurrentTime(Date.from(Instant.now().plus(Duration.ofHours(<span class="k">1</span>).plusMinutes(<span class="k">1</span>))));
+
+Job timeoutJob = managementService.createJobQuery()
+        .processInstanceId(instance.getId()).singleResult();
+managementService.executeJob(timeoutJob.getId());
+
+assertThat(instance).isEnded().hasPassed(<span class="s">"Task_CancelOrder"</span>, <span class="s">"Event_OrderCancelled"</span>);
+
+<span class="c">// @AfterEach-də mütləq: ClockUtil.reset() — yoxsa növbəti testlər zəhərlənir.</span></code></pre>
+
+<div class="box warn">
+  <span class="t">Paylaşılan Spring context-ə diqqət</span>
+  Bütün testlər eyni H2 bazasını paylaşır. Bənd 5-in testi deployment yaradır, ona görə
+  <code>@AfterEach</code>-də <code>repositoryService.deleteDeployment(id, <span>true</span>)</code>
+  (cascade) çağırılır. Əks halda versiya nömrələri testdən testə sürüşər və testlər sıraya
+  həssas olardı.
+</div>
+</div>
+
+<!-- ==================== 6 ==================== -->
+<div class="section">
+<h2>6. Bənd 2 — DMN qərar cədvəli</h2>
+
+<h3>Niyə DMN, if-else deyil?</h3>
+<p>
+Risk hədləri biznes qaydasıdır. Onlar dəyişəndə (və dəyişəcəklər) kodun yenidən kompilyasiya
+olunması, review, deploy tələb olunmamalıdır. DMN cədvəli <strong>biznes analitikin</strong>
+oxuya və redaktə edə biləcəyi artefaktdır — və Camunda onu ayrıca versiyalaşdırır.
+</p>
+
+<h3>Cədvəl</h3>
+<table>
+<tr><th style="width:22%">Amount (input)</th><th style="width:22%">riskLevel (output)</th><th>Prosesə təsiri</th></tr>
+<tr><td><code>&lt; 100</code></td><td><span class="tag green">LOW</span></td><td>Birbaşa ödəniş gözləməyə</td></tr>
+<tr><td><code>[100..1000)</code></td><td><span class="tag amber">MEDIUM</span></td><td>Birbaşa ödəniş gözləməyə</td></tr>
+<tr><td><code>&gt;= 1000</code></td><td><span class="tag red">HIGH</span></td><td><strong>Manual review user task</strong></td></tr>
+</table>
+
+<div class="box warn">
+  <span class="t">Bu layihədə real dərs</span>
+  İlk versiyada DMN <code>riskLevel</code> hesablayırdı — və <strong>heç nə etmirdi</strong>.
+  Dəyər hesablanıb dəyişəndə qalırdı, proses ona görə dəyişmirdi. Bu, "DMN əlavə etdim" deyib
+  əslində heç nə göstərməyən demo idi. Exclusive gateway və manual review task əlavə etdikdən
+  sonra DMN-in nəticəsi <em>həqiqətən</em> axını idarə etməyə başladı. Müsahibədə DMN-dən
+  danışırsınızsa, mütləq göstərin ki, çıxış <em>nəyisə</em> dəyişir.
+</div>
+
+<h3>DMN faylı</h3>
+<div class="lang">payment-risk-assessment.dmn</div>
+<pre><code>&lt;<span class="t">decision</span> <span class="a">id</span>=<span class="s">"Decision_PaymentRisk"</span> <span class="a">name</span>=<span class="s">"Payment Risk Assessment"</span>
+          <span class="a">camunda:historyTimeToLive</span>=<span class="s">"180"</span>&gt;
+  &lt;<span class="t">decisionTable</span> <span class="a">id</span>=<span class="s">"DecisionTable_PaymentRisk"</span> <span class="a">hitPolicy</span>=<span class="s">"UNIQUE"</span>&gt;
+
+    &lt;<span class="t">input</span> <span class="a">id</span>=<span class="s">"Input_Amount"</span> <span class="a">label</span>=<span class="s">"Order Amount"</span>&gt;
+      &lt;<span class="t">inputExpression</span> <span class="a">typeRef</span>=<span class="s">"double"</span>&gt;&lt;<span class="t">text</span>&gt;amount&lt;/<span class="t">text</span>&gt;&lt;/<span class="t">inputExpression</span>&gt;
+    &lt;/<span class="t">input</span>&gt;
+
+    &lt;<span class="t">output</span> <span class="a">id</span>=<span class="s">"Output_RiskLevel"</span> <span class="a">name</span>=<span class="s">"riskLevel"</span> <span class="a">typeRef</span>=<span class="s">"string"</span>/&gt;
+
+    &lt;<span class="t">rule</span> <span class="a">id</span>=<span class="s">"Rule_High"</span>&gt;
+      &lt;<span class="t">inputEntry</span>&gt;&lt;<span class="t">text</span>&gt;&gt;= 1000&lt;/<span class="t">text</span>&gt;&lt;/<span class="t">inputEntry</span>&gt;
+      &lt;<span class="t">outputEntry</span>&gt;&lt;<span class="t">text</span>&gt;"HIGH"&lt;/<span class="t">text</span>&gt;&lt;/<span class="t">outputEntry</span>&gt;
+    &lt;/<span class="t">rule</span>&gt;
+  &lt;/<span class="t">decisionTable</span>&gt;
+&lt;/<span class="t">decision</span>&gt;</code></pre>
+
+<h3>Hit policy — müsahibə sualı</h3>
+<table>
+<tr><th style="width:18%">Policy</th><th>Mənası</th></tr>
+<tr><td><code>UNIQUE</code></td><td>Yalnız bir qayda uyğun gəlməlidir. İki qayda uyğun gələrsə <strong>istisna</strong>. Bizim seçim — hədlər üst-üstə düşərsə bunu dərhal bilmək istəyirik.</td></tr>
+<tr><td><code>FIRST</code></td><td>İlk uyğun qayda. Sıra vacib olur, gizli səhvlər asanlaşır.</td></tr>
+<tr><td><code>COLLECT</code></td><td>Bütün uyğun nəticələr siyahı kimi.</td></tr>
+<tr><td><code>PRIORITY</code></td><td>Output dəyərlərinin təyin olunmuş prioritetinə görə.</td></tr>
+<tr><td><code>ANY</code></td><td>Çoxu uyğun gələ bilər, amma hamısı eyni nəticəni verməlidir.</td></tr>
+</table>
+
+<h3>BPMN-ə bağlanması</h3>
+<div class="lang">order-payment-correlation.bpmn</div>
+<pre><code>&lt;<span class="t">bpmn:businessRuleTask</span> <span class="a">id</span>=<span class="s">"Task_AssessRisk"</span> <span class="a">name</span>=<span class="s">"Assess Payment Risk"</span>
+    <span class="a">camunda:decisionRef</span>=<span class="s">"Decision_PaymentRisk"</span>
+    <span class="a">camunda:resultVariable</span>=<span class="s">"riskLevel"</span>
+    <span class="a">camunda:mapDecisionResult</span>=<span class="s">"singleEntry"</span>&gt;</code></pre>
+
+<table>
+<tr><th style="width:26%"><code>mapDecisionResult</code></th><th>Nəticə tipi</th></tr>
+<tr><td><code>singleEntry</code></td><td>Tək dəyər (bizdə: <code>"HIGH"</code> stringi). Bir sətir, bir sütun.</td></tr>
+<tr><td><code>singleResult</code></td><td><code>Map</code> — bir sətir, çox sütun.</td></tr>
+<tr><td><code>collectEntries</code></td><td><code>List</code> — çox sətir, bir sütun.</td></tr>
+<tr><td><code>resultList</code></td><td><code>List&lt;Map&gt;</code> — çox sətir, çox sütun.</td></tr>
+</table>
+
+<h3>Gateway — DMN nəticəsinin işə düşdüyü yer</h3>
+<div class="lang">BPMN</div>
+<pre><code>&lt;<span class="t">bpmn:exclusiveGateway</span> <span class="a">id</span>=<span class="s">"Gateway_RiskCheck"</span> <span class="a">name</span>=<span class="s">"High Risk?"</span>
+    <span class="a">default</span>=<span class="s">"Flow_SkipReview"</span>/&gt;   <span class="c">&lt;!-- default MÜTLƏQ olmalıdır --&gt;</span>
+
+&lt;<span class="t">bpmn:sequenceFlow</span> <span class="a">id</span>=<span class="s">"Flow_ToManualReview"</span> ...&gt;
+  &lt;<span class="t">bpmn:conditionExpression</span>&gt;${riskLevel == "HIGH"}&lt;/<span class="t">bpmn:conditionExpression</span>&gt;
+&lt;/<span class="t">bpmn:sequenceFlow</span>&gt;</code></pre>
+<div class="box danger">
+  <span class="t">default axın olmasa</span>
+  Heç bir şərt ödənmirsə engine <code>ProcessEngineException: No outgoing sequence flow ...
+  could be selected</code> atır və instansiya incident-ə düşür. Exclusive gateway-də default
+  axın demək olar ki, həmişə lazımdır.
+</div>
+
+<h3>DMN-i BPMN-siz test etmək</h3>
+<div class="lang">PaymentRiskAssessmentDmnTest.java</div>
+<pre><code>DmnDecisionTableResult result = decisionService.evaluateDecisionTableByKey(
+        <span class="s">"Decision_PaymentRisk"</span>, Variables.putValue(<span class="s">"amount"</span>, <span class="k">50000</span>));
+
+assertThat(result.getSingleEntry()).isEqualTo(<span class="s">"HIGH"</span>);
+
+<span class="c">// Sərhəd dəyərləri ayrıca yoxlanılır: 99.99 / 100 / 999.99 / 1000</span>
+<span class="c">// Bunlar məhz cədvəldə səhv yazıla bilən yerlərdir.</span></code></pre>
+<div class="box">
+  <span class="t">Doğru import</span>
+  <code>org.camunda.bpm.<strong>dmn.engine</strong>.DmnDecisionTableResult</code> —
+  <code>org.camunda.bpm.engine.dmn.*</code> deyil. Bu, məni bir dəfə yandırdı.
+</div>
+</div>
+
+<!-- ==================== 7 ==================== -->
+<div class="section">
+<h2>7. Bənd 3 — Saga və Compensation</h2>
+
+<h3>Problem</h3>
+<p>
+Ödəniş qeydə alınıb (<code>PAID</code>), sonra çatdırılma provayderi sifarişi rədd edir. İndi
+sistemdə <strong>uyğunsuz vəziyyət</strong> var: müştəri ödəyib, amma heç nə göndərilməyəcək.
+</p>
+<p>
+Bu, klassik distributed transaction problemidir. İki fərqli sistem (ödəniş + çatdırılma) arasında
+ACID tranzaksiya yoxdur. <strong>Saga</strong> pattern-i cavabdır: hər addımın <em>kompensasiya
+edən</em> əks addımı olur, və uğursuzluqda artıq icra olunmuş addımlar tərs sıra ilə geri alınır.
+</p>
+
+<figure>
+<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/></marker>
+         <marker id="a5" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#6b4fa0"/></marker></defs>
+
+  <text x="20" y="22" font-size="10.5" font-weight="700" fill="#0d2b45">Normal axın</text>
+  <rect x="20" y="32" width="110" height="38" rx="5" fill="#fff" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="75" y="49" text-anchor="middle" font-size="9.5">Mark Paid</text>
+  <text x="75" y="62" text-anchor="middle" font-size="8" fill="#6b7a89">status → PAID</text>
+
+  <line x1="130" y1="51" x2="168" y2="51" stroke="#4a5a6a" stroke-width="1.4" marker-end="url(#a4)"/>
+
+  <rect x="170" y="32" width="110" height="38" rx="5" fill="#fff" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="225" y="49" text-anchor="middle" font-size="9.5">Notify Shipping</text>
+  <text x="225" y="62" text-anchor="middle" font-size="8" fill="#6b7a89">xarici çağırış</text>
+
+  <line x1="280" y1="51" x2="318" y2="51" stroke="#4a5a6a" stroke-width="1.4" marker-end="url(#a4)"/>
+  <circle cx="335" cy="51" r="12" fill="#fff" stroke="#2d8a4e" stroke-width="2.5"/>
+  <text x="335" y="78" text-anchor="middle" font-size="8" fill="#6b7a89">Completed</text>
+
+  <!-- failure -->
+  <text x="20" y="118" font-size="10.5" font-weight="700" fill="#c0392b">Biznes xətası baş verir</text>
+  <rect x="170" y="128" width="110" height="38" rx="5" fill="#fdeeec" stroke="#c0392b" stroke-width="1.6"/>
+  <text x="225" y="145" text-anchor="middle" font-size="9.5">Notify Shipping</text>
+  <text x="225" y="158" text-anchor="middle" font-size="8" fill="#96271b">BpmnError atır</text>
+
+  <circle cx="170" cy="147" r="9" fill="#fff" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="170" y="151" font-size="9" text-anchor="middle" fill="#c0392b">!</text>
+  <text x="160" y="185" font-size="8" text-anchor="end" fill="#96271b">boundary error event</text>
+
+  <path d="M161,147 L120,147 L120,196" stroke="#4a5a6a" stroke-width="1.4" fill="none" marker-end="url(#a4)"/>
+
+  <rect x="60" y="196" width="120" height="36" rx="5" fill="#fdeeec" stroke="#c0392b" stroke-width="1.6"/>
+  <text x="120" y="212" text-anchor="middle" font-size="9.5">Throw Compensation</text>
+  <text x="120" y="225" text-anchor="middle" font-size="8" fill="#96271b">intermediate throw</text>
+
+  <path d="M300,196 L192,196" stroke="#6b4fa0" stroke-width="1.6" fill="none" stroke-dasharray="5 3" marker-end="url(#a5)"/>
+  <text x="250" y="191" text-anchor="middle" font-size="8" fill="#6b4fa0">kompensasiya tetiklənir</text>
+
+  <rect x="302" y="178" width="120" height="38" rx="5" fill="#f3eefb" stroke="#6b4fa0" stroke-width="1.8"/>
+  <text x="362" y="195" text-anchor="middle" font-size="9.5">Revert Payment</text>
+  <text x="362" y="208" text-anchor="middle" font-size="8" fill="#5a3d99">status → REFUNDED</text>
+
+  <path d="M362,178 L362,90 L130,90 L130,72" stroke="#6b4fa0" stroke-width="1.4" fill="none" stroke-dasharray="4 3"/>
+  <text x="250" y="86" text-anchor="middle" font-size="8" fill="#6b4fa0">Mark Paid-in kompensasiya handler-i</text>
+
+  <circle cx="470" cy="197" r="12" fill="#fff" stroke="#6b4fa0" stroke-width="2.5"/>
+  <line x1="424" y1="197" x2="456" y2="197" stroke="#4a5a6a" stroke-width="1.4" marker-end="url(#a4)"/>
+  <text x="470" y="224" text-anchor="middle" font-size="8" fill="#6b7a89">Payment Reversed</text>
+
+  <rect x="520" y="120" width="165" height="100" rx="6" fill="#f6f9fb" stroke="#c3d3e0"/>
+  <text x="602" y="140" text-anchor="middle" font-size="9" font-weight="700" fill="#0d2b45">Nəticə</text>
+  <text x="532" y="158" font-size="8.5" fill="#3f5a70">Sifariş PAID-də ilişib qalmır.</text>
+  <text x="532" y="172" font-size="8.5" fill="#3f5a70">REFUNDED olur — yəni sistem</text>
+  <text x="532" y="186" font-size="8.5" fill="#3f5a70">özünü uyğun vəziyyətə gətirir.</text>
+  <text x="532" y="206" font-size="8.5" fill="#3f5a70" font-style="italic">Bu, rollback DEYİL —</text>
+  <text x="532" y="217" font-size="8.5" fill="#3f5a70" font-style="italic">biznes səviyyəsində əks əməliyyat.</text>
+</svg>
+<figcaption>Şəkil 4 — Saga: uğursuzluqda artıq commit olunmuş addım əks əməliyyatla geri alınır.</figcaption>
+</figure>
+
+<div class="box">
+  <span class="t">Kompensasiya ≠ rollback</span>
+  Database rollback commit olunmamış dəyişikliyi silir və heç bir iz qalmır. Kompensasiya isə
+  <strong>artıq commit olunmuş və dünyaya görünmüş</strong> addımı əks əməliyyatla balanslaşdırır.
+  Ona görə status <code>AWAITING_PAYMENT</code>-ə qayıtmır — <code>REFUNDED</code> olur. Fərq
+  auditdə görünür və görünməlidir.
+</div>
+
+<h3>BPMN quruluşu — 4 element</h3>
+<div class="lang">order-payment-correlation.bpmn</div>
+<pre><code><span class="c">&lt;!-- 1. Kompensasiya olunan task-a bağlı boundary event --&gt;</span>
+&lt;<span class="t">bpmn:boundaryEvent</span> <span class="a">id</span>=<span class="s">"Boundary_MarkPaidCompensation"</span> <span class="a">attachedToRef</span>=<span class="s">"Task_MarkPaid"</span>&gt;
+  &lt;<span class="t">bpmn:compensateEventDefinition</span>/&gt;
+&lt;/<span class="t">bpmn:boundaryEvent</span>&gt;
+
+<span class="c">&lt;!-- 2. Handler. isForCompensation → normal axında HEÇ VAXT işləmir --&gt;</span>
+&lt;<span class="t">bpmn:serviceTask</span> <span class="a">id</span>=<span class="s">"Task_RevertPayment"</span> <span class="a">name</span>=<span class="s">"Revert Payment"</span>
+    <span class="a">isForCompensation</span>=<span class="s">"true"</span>
+    <span class="a">camunda:delegateExpression</span>=<span class="s">"${revertPaymentDelegate}"</span>/&gt;
+
+<span class="c">&lt;!-- 3. Tetikləyici: boundary error event → throw compensation --&gt;</span>
+&lt;<span class="t">bpmn:intermediateThrowEvent</span> <span class="a">id</span>=<span class="s">"Event_ThrowCompensation"</span>&gt;
+  &lt;<span class="t">bpmn:compensateEventDefinition</span>/&gt;
+&lt;/<span class="t">bpmn:intermediateThrowEvent</span>&gt;
+
+<span class="c">&lt;!-- 4. Bağlantı. DİQQƏT: bu, &lt;bpmn:process&gt;-in SON uşağı olmalıdır --&gt;</span>
+&lt;<span class="t">bpmn:association</span> <span class="a">sourceRef</span>=<span class="s">"Boundary_MarkPaidCompensation"</span>
+                   <span class="a">targetRef</span>=<span class="s">"Task_RevertPayment"</span>/&gt;</code></pre>
+
+<div class="box danger">
+  <span class="t">XSD tələsi — bir saatımı yedi</span>
+  BPMN sxemində <code>tProcess</code> tipi <strong>bütün <code>flowElement</code>-ləri
+  <code>artifact</code>-lardan əvvəl</strong> tələb edir. <code>&lt;bpmn:association&gt;</code>
+  artifact-dır. Onu sequence flow-ların arasına qoysanız deployment belə bir xəta ilə çökür:
+  <div class="lang" style="margin-top:2mm">stderr</div>
+  <pre style="margin-bottom:0"><code>cvc-complex-type.2.4.a: Invalid content was found starting with
+element 'bpmn:serviceTask'. One of '{artifact}' is expected.</code></pre>
+  Həll: association-ı <code>&lt;/bpmn:process&gt;</code>-dən dərhal əvvələ köçürmək.
+</div>
+
+<h3>Biznes xətası vs texniki xəta — bənd 3-ün əsl dərsi</h3>
+<div class="lang">NotifyShippingDelegate.java</div>
+<pre><code><span class="a">@Override</span>
+<span class="k">public void</span> <span class="t">execute</span>(DelegateExecution execution) {
+    String customerName = (String) execution.getVariable(<span class="s">"customerName"</span>);
+    <span class="k">if</span> (customerName == <span class="k">null</span>) <span class="k">return</span>;
+
+    <span class="k">if</span> (customerName.contains(<span class="s">"ShipFail"</span>)) {
+        <span class="c">// BİZNES nəticəsi: provayder sifarişi rədd etdi. Bu, modelləşdirilmiş</span>
+        <span class="c">// haldır → boundary error event tutur → kompensasiya.</span>
+        <span class="k">throw new</span> BpmnError(SHIPPING_FAILED_ERROR_CODE,
+                <span class="s">"Shipping provider rejected the order for "</span> + customerName);
+    }
+
+    <span class="k">if</span> (customerName.contains(<span class="s">"TechFail"</span>)) {
+        <span class="c">// TEXNİKİ nasazlıq: şəbəkə qırılıb. Bu, modelləşdirilmiş hal DEYİL →</span>
+        <span class="c">// engine retry edir → retry-lar bitəndə incident.</span>
+        <span class="k">throw new</span> IllegalStateException(<span class="s">"Shipping provider unreachable for "</span> + customerName);
+    }
+}</code></pre>
+
+<table>
+<tr><th style="width:20%">Atılan</th><th style="width:26%">Engine nə edir</th><th>Sifarişin sonu</th></tr>
+<tr><td><code>BpmnError</code></td><td>Boundary error event tutur → kompensasiya işə düşür</td><td><span class="tag">REFUNDED</span></td></tr>
+<tr><td><code>RuntimeException</code></td><td><code>R3/PT10S</code> üzrə retry, sonra incident</td><td><span class="tag green">PAID</span> qalır, proses park olunur</td></tr>
+</table>
+
+<div class="box ok">
+  <span class="t">Niyə bu fərq kritikdir</span>
+  Rədd edilmiş çatdırılma modelləşdirilmiş biznes nəticəsidir — kompensasiya doğrudur.
+  Qırılmış bağlantı isə <em>deyil</em>. Onu kompensasiya etmək o deməkdir ki, şəbəkə problemi
+  ucbatından <strong>ödəmiş müştərinin pulunu səssizcə geri qaytarırsınız</strong>. Doğru davranış
+  retry, sonra isə operatorun Cockpit-də müdaxiləsidir.
+</div>
+</div>
+
+<!-- ==================== 8 ==================== -->
+<div class="section">
+<h2>8. Bənd 4 — Engine daxili: async, retry, incident</h2>
+
+<h3><code>asyncBefore</code> nədir?</h3>
+<p>
+Camunda default olaraq bir proses instansiyasını <strong>bir tranzaksiyada</strong> mümkün qədər
+irəli aparır — növbəti wait state-ə qədər. Yəni ödəniş korrelyasiyası ilə çatdırılma bildirişi
+<em>eyni</em> tranzaksiyada olurdu. Çatdırılma çağırışı çökərsə, tranzaksiya geri qayıdır və
+<strong>ödənişin qeydə alınması da itir</strong>.
+</p>
+
+<figure>
+<svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="a6" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/></marker></defs>
+
+  <text x="20" y="20" font-size="10" font-weight="700" fill="#c0392b">asyncBefore OLMADAN — bir tranzaksiya</text>
+  <rect x="20" y="30" width="400" height="46" rx="5" fill="#fdeeec" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <rect x="34" y="40" width="100" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="84" y="57" text-anchor="middle" font-size="8.5">correlate</text>
+  <rect x="146" y="40" width="100" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="196" y="57" text-anchor="middle" font-size="8.5">Mark Paid</text>
+  <rect x="258" y="40" width="148" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="332" y="57" text-anchor="middle" font-size="8.5">Notify Shipping (çökür)</text>
+  <text x="430" y="58" font-size="9" fill="#96271b">← hamısı rollback: ödəniş İTİR</text>
+
+  <text x="20" y="110" font-size="10" font-weight="700" fill="#2d8a4e">asyncBefore İLƏ — iki tranzaksiya</text>
+  <rect x="20" y="120" width="230" height="46" rx="5" fill="#eef8f1" stroke="#2d8a4e" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <rect x="34" y="130" width="94" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="81" y="147" text-anchor="middle" font-size="8.5">correlate</text>
+  <rect x="140" y="130" width="94" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="187" y="147" text-anchor="middle" font-size="8.5">Mark Paid</text>
+  <text x="135" y="180" text-anchor="middle" font-size="8" fill="#1f6b3a">COMMIT — ödəniş təhlükəsizdir</text>
+
+  <line x1="252" y1="143" x2="286" y2="143" stroke="#4a5a6a" stroke-width="1.4" marker-end="url(#a6)"/>
+  <text x="269" y="136" text-anchor="middle" font-size="7.5" fill="#5c6b7a">job</text>
+
+  <rect x="290" y="120" width="180" height="46" rx="5" fill="#eef8f1" stroke="#2d8a4e" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <rect x="302" y="130" width="156" height="26" rx="3" fill="#fff" stroke="#8fb8d4"/>
+  <text x="380" y="147" text-anchor="middle" font-size="8.5">Notify Shipping (çökür)</text>
+  <text x="380" y="180" text-anchor="middle" font-size="8" fill="#1f6b3a">yalnız BU geri qayıdır → retry</text>
+
+  <text x="490" y="143" font-size="9" fill="#1f6b3a">Ödəniş faktı</text>
+  <text x="490" y="156" font-size="9" fill="#1f6b3a">qorunur.</text>
+</svg>
+<figcaption>Şəkil 5 — <code>asyncBefore</code> tranzaksiya sərhədidir: engine burada commit edir və qalanını job-a köçürür.</figcaption>
+</figure>
+
+<div class="lang">BPMN</div>
+<pre><code>&lt;<span class="t">bpmn:serviceTask</span> <span class="a">id</span>=<span class="s">"Task_NotifyShipping"</span>
+    <span class="a">camunda:delegateExpression</span>=<span class="s">"${notifyShippingDelegate}"</span>
+    <span class="a">camunda:asyncBefore</span>=<span class="s">"true"</span>                     <span class="c">&lt;!-- tranzaksiya sərhədi --&gt;</span>
+    <span class="a">camunda:failedJobRetryTimeCycle</span>=<span class="s">"R3/PT10S"</span>&gt;   <span class="c">&lt;!-- 3 dəfə, 10 san ara --&gt;</span></code></pre>
+
+<h3>Retry → incident yolu</h3>
+<table>
+<tr><th style="width:14%">Cəhd</th><th style="width:20%"><code>act_ru_job.retries_</code></th><th>Nə baş verir</th></tr>
+<tr><td>başlanğıc</td><td>3</td><td>Job yaradılır</td></tr>
+<tr><td>1</td><td>3 → 2</td><td>Xəta, 10 saniyə sonra yenidən</td></tr>
+<tr><td>2</td><td>2 → 1</td><td>Xəta, 10 saniyə sonra yenidən</td></tr>
+<tr><td>3</td><td>1 → 0</td><td>Xəta → <strong><code>act_ru_incident</code>-ə sətir</strong>, tip <code>failedJob</code></td></tr>
+</table>
+<p>
+Incident yaranandan sonra job daha icra olunmur. Proses <strong>ölmür</strong> — park olunur və
+operator Cockpit-də səbəbi düzəldib retry-ları sıfırlayana qədər gözləyir. Bu, "səssiz uğursuzluq"
+ilə "gözlə görünən uğursuzluq" arasındakı fərqdir.
+</p>
+
+<div class="lang">ShippingRetryAndIncidentTest.java — mahiyyət</div>
+<pre><code><span class="k">while</span> (attempts &lt; MAX_ATTEMPTS &amp;&amp; retriesLeft(instance) &gt; <span class="k">0</span>) {
+    attempts++;
+    <span class="k">try</span> { managementService.executeJob(currentJob(instance).getId()); }
+    <span class="k">catch</span> (RuntimeException expected) { <span class="c">/* hər cəhd uğursuzdur */</span> }
+}
+
+Incident incident = runtimeService.createIncidentQuery()
+        .processInstanceId(instance.getId()).singleResult();
+
+assertThat(incident.getIncidentType()).isEqualTo(<span class="s">"failedJob"</span>);
+assertThat(incident.getActivityId()).isEqualTo(<span class="s">"Task_NotifyShipping"</span>);
+
+<span class="c">// Ən vacib assertion: texniki xəta prosesi öldürməməli və ödənişi</span>
+<span class="c">// səssizcə geri qaytarmamalıdır.</span>
+assertThat(statusOf(correlationId)).isEqualTo(OrderStatus.PAID);</code></pre>
+
+<h3>Job executor tənzimləməsi — real trade-off-lar</h3>
+<div class="lang">application.yaml</div>
+<pre><code>camunda.bpm:
+  job-execution:
+    core-pool-size: <span class="k">3</span>
+    max-pool-size: <span class="k">10</span>
+    queue-capacity: <span class="k">20</span>
+    max-jobs-per-acquisition: <span class="k">3</span>
+    lock-time-in-millis: <span class="k">300000</span>
+    wait-time-in-millis: <span class="k">5000</span></code></pre>
+
+<table>
+<tr><th style="width:30%">Parametr</th><th>Trade-off</th></tr>
+<tr><td><code>max-pool-size</code></td><td>Job icra edən thread-lər. Az olsa throughput boğulur; çox olsa darboğaz DB connection pool-a keçir. <strong>Hikari pool ölçüsündən böyük olmamalıdır</strong> — əks halda thread-lər connection gözləyir.</td></tr>
+<tr><td><code>queue-capacity</code></td><td>Alınmış, amma hələ icra olunmamış job-lar. Böyük növbə backpressure-i gizlədir və çökmə zamanı itən işin pəncərəsini uzadır.</td></tr>
+<tr><td><code>max-jobs-per-acquisition</code></td><td>Bir dövrədə neçə job kilidlənir. Artırmaq DB gediş-gəlişini azaldır, amma klasterdə node-lar arasında <strong>optimistic locking rəqabətini</strong> artırır.</td></tr>
+<tr><td><code>lock-time-in-millis</code></td><td>Ən təhlükəli parametr. <strong>Ən yavaş real job-dan uzun olmalıdır.</strong> Qısa olsa, job hələ işləyərkən başqa node onu götürür və <em>iki dəfə icra olunur</em>.</td></tr>
+</table>
+
+<div class="box warn">
+  <span class="t">Klaster davranışı — tez-tez soruşulur</span>
+  Camunda 7-də job executor-lar mərkəzi koordinator olmadan işləyir: hər node
+  <code>SELECT ... FOR UPDATE</code> bənzəri sorğu ilə job-ları kilidləyir. Konfliktlər
+  <code>OptimisticLockingException</code> kimi görünür və <strong>normaldır</strong> — engine
+  həmin dövrəni sadəcə buraxır. Log-da bunları görmək nasazlıq əlaməti deyil; çox görmək isə
+  <code>max-jobs-per-acquisition</code>-ın böyük olduğunu göstərir.
+</div>
+</div>
+
+<!-- ==================== 9 ==================== -->
+<div class="section">
+<h2>9. Bənd 5 — Versiyalaşma və migration</h2>
+
+<h3>Əsas zəmanət</h3>
+<p>
+Camunda-da <code>deploy</code> <strong>heç vaxt köhnəni üzərinə yazmır</strong>. Eyni process
+definition key ilə dəyişdirilmiş model deploy edəndə engine onu <em>yeni versiya</em> kimi saxlayır
+(<code>act_re_procdef.version_</code> artır), və artıq işləyən instansiyalar başladıqları
+definition-a bağlı qalır (<code>act_ru_execution.proc_def_id_</code> dəyişmir).
+</p>
+
+<figure>
+<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="a7" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/></marker>
+         <marker id="a8" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#2d8a4e"/></marker></defs>
+
+  <text x="20" y="20" font-size="10" font-weight="700" fill="#0d2b45">v1 deploy olunur, instansiya başlayır</text>
+  <rect x="20" y="30" width="300" height="34" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="34" y="45" font-size="8.5">Reserve Stock</text><text x="110" y="45" font-size="8.5">→</text>
+  <text x="130" y="45" font-size="8.5">Ship Order</text>
+  <text x="34" y="58" font-size="8" fill="#6b7a89">version_ = 1</text>
+  <circle cx="60" cy="47" r="4" fill="#c0392b"/>
+  <text x="250" y="52" font-size="8.5" fill="#c0392b">● token burada</text>
+
+  <text x="20" y="92" font-size="10" font-weight="700" fill="#0d2b45">v2 deploy olunur (araya Fraud Check əlavə olunub)</text>
+  <rect x="20" y="102" width="380" height="34" rx="4" fill="#f0f6fb" stroke="#1b6ca8"/>
+  <text x="34" y="117" font-size="8.5">Reserve Stock</text><text x="110" y="117" font-size="8.5">→</text>
+  <text x="130" y="117" font-size="8.5" font-weight="700" fill="#1b6ca8">Fraud Check</text><text x="200" y="117" font-size="8.5">→</text>
+  <text x="220" y="117" font-size="8.5">Ship Order</text>
+  <text x="34" y="130" font-size="8" fill="#6b7a89">version_ = 2</text>
+
+  <rect x="420" y="30" width="260" height="106" rx="6" fill="#fdf5ec" stroke="#d9822b"/>
+  <text x="432" y="48" font-size="9" font-weight="700" fill="#a4611b">Nəticə: iki fərqli davranış</text>
+  <text x="432" y="66" font-size="8.5" fill="#3f5a70">Köhnə instansiya v1-də qalır →</text>
+  <text x="432" y="78" font-size="8.5" fill="#3f5a70">Reserve Stock bitəndə <tspan font-family="Consolas" font-size="8">Ship Order</tspan></text>
+  <text x="432" y="96" font-size="8.5" fill="#3f5a70">Yeni instansiya v2-də başlayır →</text>
+  <text x="432" y="108" font-size="8.5" fill="#3f5a70">Reserve Stock bitəndə <tspan font-family="Consolas" font-size="8">Fraud Check</tspan></text>
+  <text x="432" y="128" font-size="8.5" fill="#a4611b" font-style="italic">Eyni klik, fərqli nəticə.</text>
+
+  <text x="20" y="168" font-size="10" font-weight="700" fill="#2d8a4e">Migration: köhnə instansiyanı v2-yə köçürmək</text>
+  <rect x="20" y="178" width="300" height="52" rx="5" fill="#eef8f1" stroke="#2d8a4e" stroke-width="1.5"/>
+  <text x="34" y="196" font-family="Consolas, monospace" font-size="8">createMigrationPlan(v1, v2)</text>
+  <text x="34" y="208" font-family="Consolas, monospace" font-size="8">    .mapEqualActivities().build()</text>
+  <text x="34" y="222" font-family="Consolas, monospace" font-size="8">newMigration(plan).processInstanceIds(..).execute()</text>
+
+  <line x1="330" y1="204" x2="374" y2="204" stroke="#2d8a4e" stroke-width="1.6" marker-end="url(#a8)"/>
+  <rect x="380" y="182" width="300" height="44" rx="5" fill="#fff" stroke="#2d8a4e" stroke-width="1.5"/>
+  <text x="394" y="199" font-size="8.5">Token yenə <tspan font-weight="700">Reserve Stock</tspan>-da — irəliləmir, restart olmur.</text>
+  <text x="394" y="214" font-size="8.5">Amma artıq v2 altında: növbəti addım Fraud Check.</text>
+</svg>
+<figcaption>Şəkil 6 — Deployment additivdir; instansiyaları yeni modelə keçirmək ayrıca, açıq əməliyyatdır.</figcaption>
+</figure>
+
+<div class="box">
+  <span class="t">Niyə bu belədir?</span>
+  Bu, deployment-i <strong>təhlükəsiz</strong> edir — yeni model heç vaxt uçuşdakı işi korlaya
+  bilməz. Qiyməti isə odur ki, köhnə instansiyalar köhnə modeli icra etməyə davam edir. 500 sifariş
+  ödəniş gözləyirsə, onlar siz açıq şəkildə köçürənə qədər köhnə axınla gedəcək.
+</div>
+
+<h3>Versiya seçimi</h3>
+<table>
+<tr><th style="width:44%">Metod</th><th>Hansı versiya</th></tr>
+<tr><td><code>startProcessInstanceByKey(key)</code></td><td><strong>Həmişə ən sonuncu</strong></td></tr>
+<tr><td><code>startProcessInstanceById(defId)</code></td><td>Konkret versiya — id versiyaya bağlıdır</td></tr>
+</table>
+
+<h3>Migration kodu</h3>
+<div class="lang">Java</div>
+<pre><code>MigrationPlan plan = runtimeService.createMigrationPlan(v1.getId(), v2.getId())
+        .mapEqualActivities()      <span class="c">// id-ləri hər iki modeldə eyni olanları map edir</span>
+        .build();
+
+runtimeService.newMigration(plan)
+        .processInstanceIds(instance.getId())
+        .execute();</code></pre>
+
+<p>Faydalı əlavələr:</p>
+<table>
+<tr><th style="width:38%">Metod</th><th>Nə edir</th></tr>
+<tr><td><code>.mapActivities("Old", "New")</code></td><td>Açıq map — id dəyişibsə məcburidir.</td></tr>
+<tr><td><code>.updateEventTrigger()</code></td><td>Timer/mesaj abunəliyini yeni tərifə uyğun yenidən qurur. Timer müddəti dəyişibsə lazımdır.</td></tr>
+<tr><td><code>.skipCustomListeners()</code></td><td>Migration zamanı execution listener-ləri işə salmır.</td></tr>
+<tr><td><code>.processInstanceQuery(query)</code></td><td>Id siyahısı əvəzinə sorğu ilə toplu migration.</td></tr>
+<tr><td><code>.executeAsync()</code></td><td>Batch kimi — minlərlə instansiya üçün.</td></tr>
+</table>
+
+<h3>Ən maraqlı hal: activity adı dəyişibsə</h3>
+<div class="box danger">
+  <span class="t">Plan qurulur, icra rədd olunur</span>
+  <code>mapEqualActivities()</code> yalnız id-ləri <em>eyni</em> olanları map edir. Yeni versiyada
+  instansiyanın dayandığı activity adlandırılıbsa:
+  <ul style="margin-top:2mm; margin-bottom:0">
+    <li><code>build()</code> <strong>problemsiz keçir</strong> — çünki build yalnız <em>planı</em>
+        validate edir, instansiyaları yox</li>
+    <li><code>execute()</code> <code>MigratingProcessInstanceValidationException</code> atır</li>
+    <li>instansiya <strong>toxunulmamış</strong> qalır — engine token-in hara aid olduğunu təxmin etmir</li>
+  </ul>
+</div>
+
+<div class="lang">ProcessVersioningAndMigrationTest.java</div>
+<pre><code>MigrationPlan naivePlan = runtimeService.createMigrationPlan(v1.getId(), v2.getId())
+        .mapEqualActivities()
+        .build();                          <span class="c">// ← burada xəta YOXDUR</span>
+
+assertThatThrownBy(() -&gt; runtimeService.newMigration(naivePlan)
+        .processInstanceIds(instance.getId())
+        .execute())                        <span class="c">// ← xəta BURADA</span>
+        .isInstanceOf(MigratingProcessInstanceValidationException.class);
+
+assertThat(definitionIdOf(instance))
+        .as(<span class="s">"rədd edilmiş migration instansiyanı olduğu kimi qoymalıdır"</span>)
+        .isEqualTo(v1.getId());
+
+<span class="c">// Həll retry deyil — açıq göstəriş:</span>
+MigrationPlan explicitPlan = runtimeService.createMigrationPlan(v1.getId(), v2.getId())
+        .mapEqualActivities()
+        .mapActivities(<span class="s">"Task_ShipOrder"</span>, <span class="s">"Task_DispatchOrder"</span>)
+        .build();</code></pre>
+</div>
+
+<!-- ==================== 10 ==================== -->
+<div class="section">
+<h2>10. Bənd 6 — External Task pattern</h2>
+
+<h3>İstiqamətin tərsinə çevrilməsi</h3>
+<p>
+Java delegate-i engine <em>çağırır</em>: engine-in öz tranzaksiyasında, job executor thread-ində,
+engine-in yükləyə bildiyi klasdan. External task əksinədir — BPMN <strong>topic</strong> adlandırır,
+bean yox. Engine bizim klasımızdan xəbərsizdir.
+</p>
+
+<div class="lang">BPMN — bizim heç bir klasımızın adı yoxdur</div>
+<pre><code>&lt;<span class="t">bpmn:serviceTask</span> <span class="a">id</span>=<span class="s">"Task_GenerateInvoice"</span> <span class="a">name</span>=<span class="s">"Generate Invoice"</span>
+    <span class="a">camunda:type</span>=<span class="s">"external"</span>
+    <span class="a">camunda:topic</span>=<span class="s">"invoice-generation"</span>&gt;</code></pre>
+
+<figure>
+<svg viewBox="0 0 700 290" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="a9" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#1b6ca8"/></marker></defs>
+
+  <rect x="60" y="18" width="130" height="26" rx="4" fill="#dcecf8" stroke="#1b6ca8"/>
+  <text x="125" y="36" text-anchor="middle" font-size="9.5" font-weight="700">Camunda Engine</text>
+  <line x1="125" y1="44" x2="125" y2="268" stroke="#8fb8d4" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <rect x="450" y="18" width="130" height="26" rx="4" fill="#fff7e6" stroke="#d9822b"/>
+  <text x="515" y="36" text-anchor="middle" font-size="9.5" font-weight="700">InvoiceWorker</text>
+  <line x1="515" y1="44" x2="515" y2="268" stroke="#e0b98a" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- steps -->
+  <rect x="115" y="56" width="20" height="26" fill="#dcecf8" stroke="#1b6ca8"/>
+  <text x="150" y="66" font-size="8.5" fill="#3f5a70">Task_GenerateInvoice-a çatır:</text>
+  <text x="150" y="78" font-size="8.5" fill="#3f5a70">act_ru_ext_task-a sətir yazır və <tspan font-weight="700">DAYANIR</tspan></text>
+
+  <line x1="505" y1="106" x2="140" y2="106" stroke="#1b6ca8" stroke-width="1.4" marker-end="url(#a9)"/>
+  <text x="330" y="100" text-anchor="middle" font-size="8.5" font-family="Consolas, monospace">fetchAndLock(10, "invoice-worker-1")</text>
+  <text x="330" y="118" text-anchor="middle" font-size="8" fill="#6b7a89">.topic("invoice-generation", 10000).variables("correlationId")</text>
+
+  <line x1="140" y1="146" x2="505" y2="146" stroke="#1b6ca8" stroke-width="1.4" marker-end="url(#a9)"/>
+  <text x="330" y="140" text-anchor="middle" font-size="8.5">task + istənilən dəyişənlər</text>
+  <text x="330" y="158" text-anchor="middle" font-size="8" fill="#6b7a89">worker_id_ və lock_exp_time_ yazılır → başqası götürə bilməz</text>
+
+  <rect x="505" y="172" width="20" height="30" fill="#fff7e6" stroke="#d9822b"/>
+  <text x="490" y="184" text-anchor="end" font-size="8.5" fill="#a4611b">invoice yaradılır</text>
+  <text x="490" y="196" text-anchor="end" font-size="8.5" fill="#a4611b">(worker-in öz thread-i)</text>
+
+  <line x1="505" y1="222" x2="140" y2="222" stroke="#1b6ca8" stroke-width="1.4" marker-end="url(#a9)"/>
+  <text x="330" y="216" text-anchor="middle" font-size="8.5" font-family="Consolas, monospace">complete(id, workerId, {invoiceNumber})</text>
+  <text x="330" y="234" text-anchor="middle" font-size="8" fill="#6b7a89">və ya handleFailure(..., retriesLeft, backoff) / handleBpmnError(...)</text>
+
+  <rect x="115" y="248" width="20" height="20" fill="#dcecf8" stroke="#1b6ca8"/>
+  <text x="150" y="262" font-size="8.5" fill="#3f5a70">proses davam edir → Order Completed</text>
+</svg>
+<figcaption>Şəkil 7 — External task ardıcıllığı. Bütün təşəbbüs worker-dədir; engine yalnız cavab verir.</figcaption>
+</figure>
+
+<h3>Delegate vs External task</h3>
+<table>
+<tr><th style="width:24%"></th><th style="width:38%">Delegate (<code>Task_NotifyShipping</code>)</th><th>External (<code>Task_GenerateInvoice</code>)</th></tr>
+<tr><td><strong>Kim kimi çağırır</strong></td><td>Engine bizim bean-i çağırır</td><td>Worker engine-dən iş istəyir</td></tr>
+<tr><td><strong>BPMN istinadı</strong></td><td><code>delegateExpression</code> → bean</td><td><code>camunda:topic</code> → bizdən heç nə</td></tr>
+<tr><td><strong>Thread / tranzaksiya</strong></td><td>Job executor thread-i, engine tranzaksiyası</td><td>Worker-in öz thread-i, öz tranzaksiyası</td></tr>
+<tr><td><strong>Xəta bildirişi</strong></td><td><code>BpmnError</code> / exception atmaqla</td><td><code>handleBpmnError</code> / <code>handleFailure</code> çağırmaqla</td></tr>
+<tr><td><strong>Retry-a kim qərar verir</strong></td><td><strong>Model</strong> (<code>failedJobRetryTimeCycle</code>)</td><td><strong>Worker</strong>, hər xəta üçün ayrıca</td></tr>
+<tr><td><strong>Worker sönülüdürsə</strong></td><td>Job xəta verir, retry olunur</td><td><strong>Heç nə olmur</strong> — instansiya gözləyir</td></tr>
+<tr><td><strong>Dil / deployment</strong></td><td>JVM, engine ilə eyni classpath</td><td>İstənilən dil, ayrıca deployment</td></tr>
+</table>
+
+<h3>Worker kodu</h3>
+<div class="lang">InvoiceWorker.java</div>
+<pre><code><span class="a">@Scheduled</span>(fixedDelayString = <span class="s">"${demo.invoice-worker.poll-interval-ms:2000}"</span>)
+<span class="k">public void</span> <span class="t">pollForWork</span>() {
+    List&lt;LockedExternalTask&gt; tasks = externalTaskService
+            .fetchAndLock(MAX_TASKS_PER_FETCH, WORKER_ID)
+            .topic(TOPIC, LOCK_DURATION_MS)
+            <span class="c">// Worker lazım olan dəyişənləri ADI ilə istəyir. Ona heç vaxt</span>
+            <span class="c">// baza bağlantısı verilmir — prosesə yeganə bağı bu payload-dır.</span>
+            .variables(<span class="s">"correlationId"</span>)
+            .execute();
+
+    tasks.forEach(<span class="k">this</span>::handle);
+}
+
+<span class="k">private void</span> <span class="t">handle</span>(LockedExternalTask task) {
+    String correlationId = (String) task.getVariables().get(<span class="s">"correlationId"</span>);
+    <span class="k">try</span> {
+        String invoiceNumber = generateInvoice(correlationId);
+        externalTaskService.complete(task.getId(), WORKER_ID,
+                Map.of(<span class="s">"invoiceNumber"</span>, invoiceNumber));
+    } <span class="k">catch</span> (RuntimeException e) {
+        <span class="c">// Retry siyasəti BURADA yaşayır, modeldə deyil.</span>
+        Integer remaining = task.getRetries();
+        <span class="k">int</span> retriesLeft = remaining == <span class="k">null</span> ? INITIAL_RETRIES : remaining - <span class="k">1</span>;
+
+        externalTaskService.handleFailure(task.getId(), WORKER_ID,
+                <span class="s">"Invoice generation failed"</span>, e.toString(), retriesLeft, RETRY_BACKOFF_MS);
+    }
+}</code></pre>
+
+<div class="box ok">
+  <span class="t"><code>fetchAndLock</code> — konkurentliyin bütün hekayəsi</span>
+  On eyni worker eyni topic-i poll edə bilər. Lock onların eyni işi iki dəfə görməsinin qarşısını
+  alır. Test bunu birbaşa göstərir: worker-1 götürəndən sonra worker-2 <strong>boş siyahı</strong>
+  alır; <code>unlock()</code>-dan sonra isə götürə bilir.
+</div>
+
+<div class="box warn">
+  <span class="t">Nəqliyyat qatı haqqında dürüst qeyd</span>
+  Normalda worker <code>/engine-rest</code>-i HTTP üzərindən poll edir (<code>camunda-external-task-client</code>)
+  — məhz bu, onu istənilən dildə ayrıca deployment edə bilməyə imkan verir. Bu stack-də mümkün
+  olmadı: Camunda 7.24-ün REST starter-i <strong>Jersey</strong> üzərində qurulub, Spring Boot 4 isə
+  Jersey dəstəyini tamamilə çıxarıb. Ona görə worker engine-side <code>ExternalTaskService</code>-i
+  birbaşa çağırır. Əməliyyatlar eynidir — REST client məhz bunları wrap edir — yəni çatışmayan
+  şəbəkə hop-udur, pattern deyil.
+</div>
+</div>
+
+<!-- ==================== 11 ==================== -->
+<div class="section">
+<h2>11. Bənd 7 — Kafka və Transactional Outbox</h2>
+
+<h3>Dual write problemi</h3>
+<p>
+Ən aşkar həll <code>MarkOrderPaidDelegate</code>-in içindən Kafka producer-ini çağırmaqdır.
+Bu, <strong>dual write</strong>-dır: engine sifariş və proses vəziyyətini Postgres-ə commit edir,
+producer isə broker-ə göndərir, və bu iki sistemi birləşdirən tranzaksiya <em>yoxdur</em>.
+</p>
+
+<figure>
+<svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="b1" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/></marker></defs>
+
+  <!-- left: dual write -->
+  <text x="20" y="18" font-size="10.5" font-weight="700" fill="#c0392b">✗ Dual write</text>
+  <rect x="20" y="26" width="300" height="128" rx="6" fill="#fdeeec" stroke="#c0392b"/>
+
+  <rect x="36" y="40" width="120" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="96" y="59" text-anchor="middle" font-size="8.5">MarkOrderPaidDelegate</text>
+
+  <path d="M80,70 L60,96" stroke="#4a5a6a" stroke-width="1.3" fill="none" marker-end="url(#b1)"/>
+  <path d="M120,70 L215,96" stroke="#4a5a6a" stroke-width="1.3" fill="none" marker-end="url(#b1)"/>
+
+  <rect x="24" y="100" width="82" height="30" rx="4" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="65" y="119" text-anchor="middle" font-size="8.5">Postgres</text>
+  <rect x="186" y="100" width="82" height="30" rx="4" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="227" y="119" text-anchor="middle" font-size="8.5">Kafka</text>
+
+  <text x="146" y="147" text-anchor="middle" font-size="8.5" fill="#96271b" font-weight="700">⚡ arada çökmə</text>
+
+  <rect x="20" y="164" width="300" height="52" rx="5" fill="#fff" stroke="#c0392b"/>
+  <text x="32" y="180" font-size="8.5" fill="#96271b">• Commit oldu, göndərmə olmadı → <tspan font-weight="700">event itdi</tspan></text>
+  <text x="32" y="194" font-size="8.5" fill="#96271b">• Göndərildi, commit rollback → <tspan font-weight="700">olmayan hadisə</tspan></text>
+  <text x="32" y="210" font-size="8.5" fill="#96271b" font-style="italic">Çağırışların sırasını dəyişmək bunu HƏLL ETMİR.</text>
+
+  <!-- right: outbox -->
+  <text x="370" y="18" font-size="10.5" font-weight="700" fill="#2d8a4e">✓ Transactional outbox</text>
+  <rect x="370" y="26" width="310" height="128" rx="6" fill="#eef8f1" stroke="#2d8a4e"/>
+
+  <rect x="384" y="40" width="124" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="446" y="59" text-anchor="middle" font-size="8.5">MarkOrderPaidDelegate</text>
+
+  <rect x="384" y="86" width="180" height="52" rx="5" fill="#fff" stroke="#2d8a4e" stroke-width="1.8" stroke-dasharray="4 3"/>
+  <text x="474" y="82" text-anchor="middle" font-size="8" fill="#1f6b3a">bir tranzaksiya</text>
+  <rect x="394" y="96" width="76" height="16" rx="2" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="432" y="108" text-anchor="middle" font-size="7.5">demo_order</text>
+  <rect x="394" y="116" width="76" height="16" rx="2" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="432" y="128" text-anchor="middle" font-size="7.5">outbox_event</text>
+  <rect x="478" y="106" width="76" height="16" rx="2" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="516" y="118" text-anchor="middle" font-size="7.5">act_ru_*</text>
+  <line x1="446" y1="70" x2="446" y2="84" stroke="#4a5a6a" stroke-width="1.3" marker-end="url(#b1)"/>
+
+  <text x="596" y="106" text-anchor="middle" font-size="8" fill="#1f6b3a">hamısı</text>
+  <text x="596" y="118" text-anchor="middle" font-size="8" fill="#1f6b3a">və ya heç biri</text>
+
+  <text x="370" y="176" font-size="9" font-weight="700" fill="#0d2b45">Commit-dən SONRA:</text>
+  <rect x="370" y="184" width="140" height="30" rx="4" fill="#fff" stroke="#8fb8d4"/>
+  <text x="440" y="203" text-anchor="middle" font-size="8.5">OutboxPublisher</text>
+  <line x1="512" y1="199" x2="546" y2="199" stroke="#4a5a6a" stroke-width="1.3" marker-end="url(#b1)"/>
+  <rect x="550" y="184" width="82" height="30" rx="4" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="591" y="203" text-anchor="middle" font-size="8.5">Kafka</text>
+
+  <rect x="370" y="228" width="310" height="58" rx="5" fill="#fff" stroke="#2d8a4e"/>
+  <text x="382" y="245" font-size="8.5" fill="#1f6b3a">Qalan tək zəiflik: ack ilə <tspan font-family="Consolas" font-size="8">publishedAt</tspan> yenilənməsi</text>
+  <text x="382" y="258" font-size="8.5" fill="#1f6b3a">hələ də iki sistemdir → <tspan font-weight="700">at-least-once</tspan>.</text>
+  <text x="382" y="274" font-size="8.5" fill="#1f6b3a" font-style="italic">Təkrarlamaq itirməkdən yaxşıdır → consumer idempotent olmalıdır.</text>
+</svg>
+<figcaption>Şəkil 8 — Outbox ikinci sistemi kritik yoldan çıxarır; qalan risk şüurlu şəkildə seçilmiş at-least-once-dır.</figcaption>
+</figure>
+
+<h3>Yazma tərəfi</h3>
+<div class="lang">MarkOrderPaidDelegate.java</div>
+<pre><code>orderRepository.findByCorrelationId(correlationId).ifPresent(order -&gt; {
+    order.markPaid();
+    orderRepository.save(order);
+
+    <span class="c">// Status dəyişikliyi və proses vəziyyəti ilə EYNİ tranzaksiyada.</span>
+    <span class="c">// Event nə rollback-dan sağ çıxa, nə də commit-dən sonra itə bilər.</span>
+    outbox.record(OrderEventOutbox.ORDER_PAID, correlationId,
+            order.getCustomerName(), order.getAmount());
+});</code></pre>
+
+<h3>Göndərmə tərəfi</h3>
+<div class="lang">OutboxPublisher.java</div>
+<pre><code><span class="a">@Scheduled</span>(fixedDelayString = <span class="s">"${demo.outbox.poll-interval-ms:1000}"</span>)
+<span class="a">@Transactional</span>
+<span class="k">public void</span> <span class="t">publishPending</span>() {
+    List&lt;OutboxEvent&gt; pending = outboxEventRepository.findTop100ByPublishedAtIsNullOrderByIdAsc();
+
+    <span class="k">for</span> (OutboxEvent event : pending) {
+        <span class="k">try</span> {
+            <span class="c">// Ack-i gözləmək vacibdir: onsuz sətri "göndərilib" işarələyərdik,</span>
+            <span class="c">// halbuki record hələ producer buferindədir.</span>
+            kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload())
+                    .get(ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            event.markPublished();
+        } <span class="k">catch</span> (Exception e) {
+            <span class="c">// İlk xətada DAYANIRIQ, keçib getmirik — əks halda eyni sifarişin</span>
+            <span class="c">// gec event-i erkənindən əvvəl gedər və keying-in mənası itər.</span>
+            <span class="k">return</span>;
+        }
+    }
+}</code></pre>
+
+<table>
+<tr><th style="width:32%">Qərar</th><th>Səbəb</th></tr>
+<tr><td>Kafka key = <code>correlationId</code></td><td>Bir sifarişin bütün event-ləri eyni partition-a düşür → <strong>sıra qorunur</strong>. Consumer həm də bu açarla dedup edə bilir.</td></tr>
+<tr><td><code>acks: all</code></td><td>Bütün in-sync replika yazana qədər gözlə. Zəif ayar "published" işarələnmiş, amma davamlı saxlanmamış sətirlər deməkdir.</td></tr>
+<tr><td>İlk xətada dayan</td><td>Sıranın pozulmaması üçün.</td></tr>
+<tr><td>Əvvəl göndər, sonra işarələ</td><td>Tərsi event <em>itirir</em>. Təkrar göndərmək təhlükəsizdir, itirmək deyil.</td></tr>
+</table>
+
+<h3>Oxuma tərəfi — at-least-once ilə yaşamaq</h3>
+<div class="lang">PaymentEventConsumer.java</div>
+<pre><code><span class="a">@KafkaListener</span>(topics = <span class="s">"${demo.kafka.payment-events-topic}"</span>,
+               groupId = <span class="s">"${demo.kafka.consumer-group}"</span>)
+<span class="k">public void</span> <span class="t">onPaymentEvent</span>(String correlationId) {
+    Optional&lt;Order&gt; order = orderService.findByCorrelationId(correlationId);
+
+    <span class="k">if</span> (order.isEmpty()) {
+        <span class="c">// Gözləmək sifariş yaratmır → retry mənasızdır.</span>
+        <span class="k">throw new</span> UnknownOrderException(correlationId);      <span class="c">// non-retryable → DLT</span>
+    }
+
+    <span class="k">if</span> (order.get().getStatus() != OrderStatus.AWAITING_PAYMENT) {
+        <span class="c">// TƏKRAR çatdırılma. Status dedup açarıdır.</span>
+        <span class="k">return</span>;                                              <span class="c">// no-op</span>
+    }
+
+    <span class="k">if</span> (!orderService.notifyPaymentReceived(correlationId)) {
+        <span class="c">// Korrelyasiya xətası adətən "səhv" yox, "TEZ" deməkdir:</span>
+        <span class="c">// instansiya hələ mesaj event-inə çatmayıb (məsələn manual review-dadır).</span>
+        <span class="k">throw new</span> NotWaitingForPaymentException(correlationId);  <span class="c">// retryable</span>
+    }
+}</code></pre>
+
+<table>
+<tr><th style="width:32%">Vəziyyət</th><th style="width:26%">Reaksiya</th><th>Səbəb</th></tr>
+<tr><td>Sifariş artıq ödənilib</td><td><span class="tag">no-op</span></td><td>Burada xəta atmaq sonsuz retry deməkdir</td></tr>
+<tr><td>Manual review-dadır</td><td><span class="tag amber">throw → retry</span></td><td>Proses sağdır, ödənişi sonra qəbul edəcək</td></tr>
+<tr><td>Belə sifariş yoxdur</td><td><span class="tag red">throw → DLT</span></td><td>Gözləmək sifariş yaratmır</td></tr>
+</table>
+
+<div class="box danger">
+  <span class="t">DLT olmasa nə olur?</span>
+  Daimi uğursuz record sonsuz retry olunur və <strong>öz partition-unu bloklayır</strong>. Onun
+  arxasındakı bütün düzgün event-lər dayanır. Bir "zəhərli" mesaj bütün növbəni dayandırır.
+</div>
+
+<div class="lang">KafkaConfig.java</div>
+<pre><code><span class="a">@Bean</span>
+DefaultErrorHandler <span class="t">kafkaErrorHandler</span>(KafkaTemplate&lt;String, String&gt; kafkaTemplate,
+                                      <span class="a">@Value</span>(<span class="s">"${demo.kafka.payment-events-dlt-topic}"</span>) String deadLetterTopic) {
+    <span class="c">// Hədəf ADLA verilir, recoverer-in default suffiks konvensiyasına buraxılmır —</span>
+    <span class="c">// elan olunan topic ilə həqiqətən yazılan topic ayrıla bilməsin.</span>
+    DeadLetterPublishingRecoverer recoverer = <span class="k">new</span> DeadLetterPublishingRecoverer(
+            kafkaTemplate, (record, exception) -&gt; <span class="k">new</span> TopicPartition(deadLetterTopic, -<span class="k">1</span>));
+
+    DefaultErrorHandler handler = <span class="k">new</span> DefaultErrorHandler(recoverer, <span class="k">new</span> FixedBackOff(<span class="k">2000L</span>, <span class="k">3</span>));
+    handler.addNotRetryableExceptions(PaymentEventConsumer.UnknownOrderException.class);
+    <span class="k">return</span> handler;
+}</code></pre>
+</div>
+
+<!-- ==================== 12 ==================== -->
+<div class="section">
+<h2>12. Bənd 8 — OAuth2 / OIDC</h2>
+
+<h3>Resource server nədir?</h3>
+<p>
+<code>/api/**</code> <strong>resource server</strong>-dir: gələn bearer token-i Keycloak-ın dərc
+etdiyi imza açarları ilə yoxlayır və içindəki rollara görə icazə verir. Bu tətbiqə heç vaxt parol
+çatmır və hər sorğuda Keycloak-a gediş-gəliş olmur — imza və <code>iss</code>/<code>exp</code>
+claim-ləri kifayətdir.
+</p>
+
+<figure>
+<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="10">
+  <defs><marker id="b2" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto"><path d="M0,0 L0,5.2 L7,2.6 z" fill="#4a5a6a"/></marker></defs>
+
+  <rect x="20" y="40" width="110" height="40" rx="5" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="75" y="58" text-anchor="middle" font-size="9.5" font-weight="700">Client</text>
+  <text x="75" y="72" text-anchor="middle" font-size="8" fill="#5c6b7a">alice / alice</text>
+
+  <rect x="280" y="18" width="130" height="42" rx="5" fill="#e8eef3" stroke="#5c6b7a"/>
+  <text x="345" y="36" text-anchor="middle" font-size="9.5" font-weight="700">Keycloak :8083</text>
+  <text x="345" y="50" text-anchor="middle" font-size="8" fill="#5c6b7a">realm camunda-demo</text>
+
+  <rect x="540" y="40" width="140" height="42" rx="5" fill="#f0f6fb" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="610" y="58" text-anchor="middle" font-size="9.5" font-weight="700">Demo API :8082</text>
+  <text x="610" y="72" text-anchor="middle" font-size="8" fill="#3f5a70">resource server</text>
+
+  <path d="M132,52 L276,42" stroke="#4a5a6a" stroke-width="1.3" fill="none" marker-end="url(#b2)"/>
+  <text x="200" y="40" text-anchor="middle" font-size="8">① parol → token</text>
+
+  <path d="M276,56 L132,66" stroke="#4a5a6a" stroke-width="1.3" fill="none" marker-end="url(#b2)"/>
+  <text x="200" y="80" text-anchor="middle" font-size="8">② imzalanmış JWT</text>
+
+  <path d="M132,74 L536,74" stroke="#4a5a6a" stroke-width="1.3" fill="none" marker-end="url(#b2)"/>
+  <text x="340" y="92" text-anchor="middle" font-size="8">③ Authorization: Bearer &lt;JWT&gt;</text>
+
+  <path d="M560,40 L370,32" stroke="#1b6ca8" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#b2)"/>
+  <text x="470" y="22" text-anchor="middle" font-size="7.5" fill="#1b6ca8">startup-da bir dəfə: JWKS + metadata</text>
+
+  <rect x="140" y="110" width="420" height="118" rx="6" fill="#f6f9fb" stroke="#c3d3e0"/>
+  <text x="152" y="128" font-size="9" font-weight="700" fill="#0d2b45">④ Token içində nə var:</text>
+  <text x="152" y="146" font-family="Consolas, monospace" font-size="8.5" fill="#0b3d5c">"iss": "http://localhost:8083/realms/camunda-demo"</text>
+  <text x="152" y="160" font-family="Consolas, monospace" font-size="8.5" fill="#1f6b3a">"realm_access": { "roles": ["order-admin"] }   ← rollar BURADA</text>
+  <text x="152" y="174" font-family="Consolas, monospace" font-size="8.5" fill="#96271b">"scope": "email profile"                      ← Spring default BURAYA baxır</text>
+  <line x1="152" y1="184" x2="548" y2="184" stroke="#c3d3e0"/>
+  <text x="152" y="200" font-size="8.5" fill="#96271b">Default converter → SCOPE_email, SCOPE_profile və <tspan font-weight="700">SIFIR rol</tspan></text>
+  <text x="152" y="216" font-size="8.5" fill="#1f6b3a">KeycloakRealmRoleConverter → <tspan font-weight="700">ROLE_order-admin</tspan> ✓</text>
+</svg>
+<figcaption>Şəkil 9 — Token axını və "Keycloak rollarım işləmir" probleminin əsl səbəbi.</figcaption>
+</figure>
+
+<h3>Ən çox rast gəlinən səhv</h3>
+<div class="box danger">
+  <span class="t">Rollar <code>scope</code>-da deyil</span>
+  Spring Security-nin default <code>JwtGrantedAuthoritiesConverter</code>-i <code>scope</code>/<code>scp</code>
+  claim-inə baxır. Keycloak isə realm rollarını <code>realm_access.roles</code>-a qoyur. Nəticədə
+  <strong>tamamilə etibarlı token</strong> heç bir rol vermir və bütün <code>hasRole</code>
+  yoxlamaları uğursuz olur — bu isə token problemi kimi görünür, halbuki mapping problemidir.
+</div>
+
+<div class="lang">KeycloakRealmRoleConverter.java</div>
+<pre><code><span class="k">public class</span> <span class="t">KeycloakRealmRoleConverter</span>
+        <span class="k">implements</span> Converter&lt;Jwt, Collection&lt;GrantedAuthority&gt;&gt; {
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Collection&lt;GrantedAuthority&gt; <span class="t">convert</span>(Jwt jwt) {
+        Map&lt;String, Object&gt; realmAccess = jwt.getClaimAsMap(<span class="s">"realm_access"</span>);
+
+        <span class="k">if</span> (realmAccess == <span class="k">null</span>
+                || !(realmAccess.get(<span class="s">"roles"</span>) <span class="k">instanceof</span> Collection&lt;?&gt; roles)) {
+            <span class="k">return</span> List.of();   <span class="c">// rolsuz istifadəçi = 403, 500 deyil</span>
+        }
+
+        <span class="k">return</span> roles.stream()
+                .map(String::valueOf)
+                .map(role -&gt; (GrantedAuthority) <span class="k">new</span> SimpleGrantedAuthority(<span class="s">"ROLE_"</span> + role))
+                .toList();
+    }
+}</code></pre>
+<p>
+Client rolları isə tamam başqa yerdədir: <code>resource_access.&lt;clientId&gt;.roles</code>.
+</p>
+
+<h3>Üç filter chain, bir yox</h3>
+<table>
+<tr><th style="width:22%">Səth</th><th style="width:16%">CSRF</th><th>Səbəb</th></tr>
+<tr><td><code>/api/**</code></td><td><span class="tag red">söndürülüb</span></td><td>Stateless bearer token — session yox, cookie yox, deməli minmək üçün heç nə yoxdur. <strong>Yeganə söndürüldüyü yer.</strong></td></tr>
+<tr><td><code>/camunda/**</code></td><td><span class="tag red">söndürülüb</span></td><td>Camunda öz login-i və öz CSRF filter-i ilə gəlir; üstünə Spring-inkini qoymaq onun POST-larını rədd edir.</td></tr>
+<tr><td>qalan hər şey</td><td><span class="tag green">aktiv</span></td><td>Demo UI açıqdır, amma CSRF qalır. Thymeleaf hər <code>th:action</code> formuna token əlavə edir.</td></tr>
+</table>
+
+<div class="lang">SecurityConfig.java</div>
+<pre><code><span class="a">@Bean</span>
+<span class="a">@Order</span>(<span class="k">1</span>)
+SecurityFilterChain <span class="t">apiSecurityFilterChain</span>(HttpSecurity http,
+                                           JwtAuthenticationConverter converter) <span class="k">throws</span> Exception {
+    <span class="k">return</span> http
+            .securityMatcher(<span class="s">"/api/**"</span>)
+            .authorizeHttpRequests(a -&gt; a
+                    .requestMatchers(HttpMethod.POST, <span class="s">"/api/orders"</span>).hasRole(<span class="s">"order-admin"</span>)
+                    .requestMatchers(HttpMethod.POST, <span class="s">"/api/orders/*/payment"</span>).hasRole(<span class="s">"order-admin"</span>)
+                    .requestMatchers(HttpMethod.GET, <span class="s">"/api/orders/**"</span>)
+                            .hasAnyRole(<span class="s">"order-admin"</span>, <span class="s">"order-viewer"</span>)
+                    .anyRequest().authenticated())
+            .oauth2ResourceServer(o -&gt; o.jwt(j -&gt; j.jwtAuthenticationConverter(converter)))
+            .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(csrf -&gt; csrf.disable())
+            .build();
+}</code></pre>
+
+<h3><code>issuer-uri</code> vs <code>jwk-set-uri</code></h3>
+<table>
+<tr><th style="width:26%">Ayar</th><th>Nə edir</th></tr>
+<tr><td><code>issuer-uri</code><br><span class="tag green">production</span></td><td>Startup-da OIDC metadata-nı çəkir, JWKS ünvanını oradan alır. <strong><code>iss</code> claim-ini də yoxlayır</strong> — başqa realm-dan gələn düzgün imzalanmış token rədd olunur.</td></tr>
+<tr><td><code>jwk-set-uri</code><br><span class="tag">test</span></td><td>Yalnız açar dəstini göstərir, startup-da şəbəkəyə çıxmır. Testlərdə istifadə olunur ki, hər test qaçışı üçün Keycloak lazım olmasın.</td></tr>
+</table>
+
+<h3>401 vs 403 — canlı yoxlanmış matris</h3>
+<table>
+<tr><th style="width:34%">Çağıran</th><th style="width:20%"><code>POST /api/orders</code></th><th>Mənası</th></tr>
+<tr><td>token yox</td><td><span class="tag red">401</span></td><td>Kim olduğunu bilmirik</td></tr>
+<tr><td>səhv formatlı token</td><td><span class="tag red">401</span></td><td>Autentifikasiya uğursuz</td></tr>
+<tr><td><code>carol</code> — rolsuz</td><td><span class="tag amber">403</span></td><td>Kim olduğunu bilirik, icazəsi yoxdur</td></tr>
+<tr><td><code>bob</code> — <code>order-viewer</code></td><td><span class="tag amber">403</span></td><td>Oxuya bilər, yaza bilməz</td></tr>
+<tr><td><code>alice</code> — <code>order-admin</code></td><td><span class="tag green">200</span></td><td>İcazəlidir</td></tr>
+</table>
+
+<div class="box warn">
+  <span class="t">Nəyi qəsdən daxil etmədim</span>
+  Cockpit/Tasklist-ə <strong>SSO</strong> ayrı işdir: <code>ContainerBasedAuthenticationFilter</code>
+  plus OIDC principal-ı Camunda-nın identity service-inə map edən <code>AuthenticationProvider</code>,
+  ya da community Keycloak identity plugin-i lazımdır. Həmin plugin Spring Boot 3 üçündür, bu layihə
+  isə Boot 4-dədir — və Boot 4 bu repoya artıq iki dəfə baha oturub (Jersey, Kafka autoconfig).
+  Yarımçıq bağlamaqdansa kənarda saxlanıb.
+</div>
+</div>
+
+<!-- ==================== 13 ==================== -->
+<div class="section">
+<h2>13. Yol boyu qarşılaşdığım real problemlər</h2>
+<p>
+Bunlar sənəddə yazılmayan, yalnız işlədəndə üzə çıxan şeylərdir. Müsahibədə "hansı çətinliklə
+qarşılaşdınız?" sualına konkret cavabdır.
+</p>
+
+<h3>13.1 Spring Boot 4 — Jersey silinib</h3>
+<div class="box danger">
+  <span class="t">Simptom</span>
+  <code>camunda-bpm-spring-boot-starter-rest</code> əlavə edən kimi <strong>bütün</strong> Spring
+  context yüklənməsi çökdü:
+  <div class="lang" style="margin-top:2mm">stderr</div>
+  <pre style="margin-bottom:0"><code>ClassNotFoundException:
+  org.springframework.boot.autoconfigure.web.servlet.JerseyApplicationPath
+Error processing condition on CamundaBpmWebappAutoConfiguration</code></pre>
+</div>
+<p>
+<strong>Səbəb:</strong> Camunda 7.24-ün REST starter-i Jersey üzərində qurulub. Spring Boot 4 Jersey
+auto-configuration-ı tamamilə çıxarıb. Yəni bu stack-də <code>/engine-rest</code>-i qaldırmaq mümkün
+deyil.<br>
+<strong>Həll:</strong> External task worker engine-side <code>ExternalTaskService</code>-i birbaşa
+çağırır. Pattern qorunur, yalnız HTTP hop-u yoxdur. Bu, <code>build.gradle</code>-da və README-də
+açıq sənədləşdirilib.
+</p>
+
+<h3>13.2 Spring Boot 4 — Kafka auto-config ayrı modula köçüb</h3>
+<p>
+<code>org.springframework.kafka:spring-kafka</code> əlavə etmək kifayət etmədi:
+<code>KafkaTemplate</code> bean-i yox idi, <code>@KafkaListener</code> işləmirdi,
+<code>spring.kafka.*</code> property-ləri oxunmurdu.
+</p>
+<table>
+<tr><th style="width:34%">Səhv</th><th>Düzgün</th></tr>
+<tr><td><code>org.springframework.kafka:spring-kafka</code></td><td><code>org.springframework.boot:spring-boot-starter-kafka</code></td></tr>
+<tr><td><code>org.springframework.boot.autoconfigure.kafka.KafkaProperties</code></td><td><code>org.springframework.boot.<strong>kafka.autoconfigure</strong>.KafkaProperties</code></td></tr>
+<tr><td><code>org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc</code></td><td><code>org.springframework.boot.<strong>webmvc.test.autoconfigure</strong>.AutoConfigureMockMvc</code></td></tr>
+</table>
+
+<h3>13.3 <code>KafkaTemplate&lt;String,String&gt;</code> inject olunmur</h3>
+<p>
+Boot-un auto-config etdiyi bean <code>KafkaTemplate&lt;?, ?&gt;</code> kimi elan olunub və
+<code>KafkaTemplate&lt;String, String&gt;</code> tələb edən injection point-ə uyğun gəlmir:
+<code>NoSuchBeanDefinitionException</code>. Bu, <strong>production-da da sınardı</strong> — testlər
+sayəsində erkən tapıldı.
+</p>
+<div class="lang">KafkaConfig.java — həll</div>
+<pre><code><span class="a">@Bean</span>
+KafkaTemplate&lt;String, String&gt; <span class="t">kafkaTemplate</span>(KafkaProperties kafkaProperties) {
+    <span class="k">return new</span> KafkaTemplate&lt;&gt;(
+            <span class="k">new</span> DefaultKafkaProducerFactory&lt;&gt;(kafkaProperties.buildProducerProperties()));
+}
+<span class="c">// Öz bean-imiz olduğu üçün Boot-un @ConditionalOnMissingBean tərifi geri çəkilir.</span></code></pre>
+
+<h3>13.4 DLT adı uyğunsuzluğu — yalnız canlı yoxlamada üzə çıxdı</h3>
+<div class="box warn">
+  <span class="t">Testlər bunu tuta bilməzdi</span>
+  <code>payment-events.DLT</code> adlı topic elan etmişdim. Spring Kafka 4-ün default konvensiyası isə
+  <code>&lt;topic&gt;-dlt</code>-dir. Nəticədə record auto-create olunmuş <code>payment-events-dlt</code>-yə
+  düşürdü, mənim elan etdiyim topic isə <strong>boş qalırdı</strong>. Log-dakı ipucu:
+  <div class="lang" style="margin-top:2mm">app log</div>
+  <pre style="margin-bottom:0"><code>WARN DeadLetterPublishingRecoverer : Destination resolver returned
+non-existent partition payment-events-dlt-0</code></pre>
+  Həll: hədəfi konvensiyaya buraxmaq əvəzinə açıq təyin etmək.
+</div>
+
+<h3>13.5 <code>ddl-auto: update</code> CHECK constraint-i yeniləmir</h3>
+<p>
+<code>OrderStatus</code> enum-una <code>REFUNDED</code> əlavə etdim. UI-də "Simulate Payment"
+500 verdi:
+</p>
+<div class="lang">stderr</div>
+<pre><code>new row for relation "demo_order" violates check constraint "demo_order_status_check"</code></pre>
+<p>
+Hibernate <code>update</code> rejimində <strong>mövcud CHECK constraint-i dəyişmir</strong> — o,
+yalnız köhnə üç dəyərlə yaradılmışdı. Əl ilə düzəldildi:
+</p>
+<div class="lang">SQL</div>
+<pre><code><span class="k">ALTER TABLE</span> demo_order <span class="k">DROP CONSTRAINT</span> demo_order_status_check;
+<span class="k">ALTER TABLE</span> demo_order <span class="k">ADD CONSTRAINT</span> demo_order_status_check
+  <span class="k">CHECK</span> (status <span class="k">IN</span> (<span class="s">'AWAITING_PAYMENT'</span>,<span class="s">'PAID'</span>,<span class="s">'CANCELLED'</span>,<span class="s">'REFUNDED'</span>));</code></pre>
+<div class="box">
+  <span class="t">Dərs</span>
+  Bu, real layihələrdə <code>ddl-auto</code> yerinə <strong>Flyway/Liquibase</strong> istifadə
+  etməyin klassik səbəbidir. Müsahibədə soruşulsa, konkret nümunəniz var.
+</div>
+
+<h3>13.6 Event-based gateway-in activity id-si</h3>
+<p>
+<code>isWaitingAt("Event_PaymentReceived")</code> uğursuz oldu. ActivityInstance ağacını çap edəndə
+məlum oldu ki, gateway arxasında park olunmuş execution-lar <strong>gateway-in öz id-si</strong>
+(<code>Gateway_WaitForEvent</code>) ilə görünür — fərdi catch event-lərin id-si ilə deyil, ta ki
+budaqlardan biri həqiqətən işə düşənə qədər.
+</p>
+
+<h3>13.7 BPMN fayl "özbaşına" geri qayıtdı</h3>
+<p>
+Gateway və user task əlavə etdikdən sonra UI-də 6000 dəyəri review task yaratmadı. Araşdırma göstərdi
+ki, deploy olunmuş versiyada gateway yoxdur — sonra isə <code>grep</code> sübut etdi ki,
+<strong>faylın özü diskdə geri qayıdıb</strong> (yəqin IDE bağlananda köhnə buferi yazıb).
+</p>
+<div class="box ok">
+  <span class="t">Nəticə</span>
+  Məhz bu hadisə <code>git init</code>-ə səbəb oldu. Versiya nəzarəti olmadan belə bir şeyi
+  aşkarlamaq və bərpa etmək çox baha başa gəlir.
+</div>
+</div>
+
+<!-- ==================== 14 ==================== -->
+<div class="section">
+<h2>14. Müsahibə üçün sual-cavab</h2>
+
+<h3>Camunda əsasları</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td>Embedded və standalone engine fərqi?</td><td>Embedded — engine tətbiqin JVM-ində, tranzaksiya paylaşılır, delegate-lər sizin bean-lərinizdir. Standalone — ayrıca server, REST ilə müraciət, delegate-lər serverin classpath-ində olmalıdır (ya da external task).</td></tr>
+<tr><td>Wait state nədir?</td><td>Engine-in tranzaksiyanı commit edib dayandığı nöqtə: user task, mesaj/timer catch event, external task, async continuation.</td></tr>
+<tr><td>Business key nə üçündür?</td><td>Proses instansiyasını biznes obyektinə bağlamaq. Cockpit-də axtarış, <code>processInstanceBusinessKey()</code> sorğuları.</td></tr>
+<tr><td>Message correlation necə işləyir?</td><td><code>act_ru_event_subscr</code>-də abunəliklər saxlanılır; korrelyasiya dəyişən/business key üzrə indeksli axtarışdır. <code>correlate</code>, <code>correlateAll</code>, <code>correlateExclusively</code> fərqləri.</td></tr>
+</table>
+
+<h3>Xəta idarəetməsi</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td><code>BpmnError</code> nə vaxt, exception nə vaxt?</td><td><code>BpmnError</code> — modelləşdirilmiş <strong>biznes</strong> nəticəsi, boundary error event tutur. Exception — <strong>texniki</strong> nasazlıq, engine retry edir, sonra incident. Texniki xətanı kompensasiya etmək = şəbəkə problemi ucbatından müştəriyə pul qaytarmaq.</td></tr>
+<tr><td>Incident nədir və nə vaxt yaranır?</td><td>Job-un retry-ları 0-a çatanda <code>act_ru_incident</code>-ə sətir yazılır. Proses ölmür — park olunur. Operator Cockpit-də səbəbi düzəldib retry-ı sıfırlayır.</td></tr>
+<tr><td>Saga pattern-i Camunda-da necə qurulur?</td><td>Kompensasiya olunan task-a <code>compensateEventDefinition</code>-lı boundary event, <code>isForCompensation="true"</code> handler, aralarında <code>&lt;association&gt;</code>, və tetikləmək üçün <code>intermediateThrowEvent</code>.</td></tr>
+<tr><td>Kompensasiya rollback-dan nə ilə fərqlənir?</td><td>Rollback commit olunmamış dəyişikliyi silir, iz qalmır. Kompensasiya artıq commit olunmuş və görünmüş addımı əks əməliyyatla balanslaşdırır — auditdə iz qalır (PAID → REFUNDED, AWAITING_PAYMENT deyil).</td></tr>
+</table>
+
+<h3>Engine daxili</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td><code>asyncBefore</code> nə üçündür?</td><td>Tranzaksiya sərhədi. Engine burada commit edir və qalanını job-a köçürür. Sonrakı addım çökərsə əvvəlki commit itmir.</td></tr>
+<tr><td><code>asyncBefore</code> vs <code>asyncAfter</code>?</td><td><code>Before</code> — activity-dən <em>əvvəl</em> commit; activity-nin özü retry olunur. <code>After</code> — activity-dən <em>sonra</em>; activity təkrar icra olunmur, yalnız sonrakı keçid.</td></tr>
+<tr><td><code>lock-time-in-millis</code> niyə vacibdir?</td><td>Ən yavaş job-dan qısa olsa, job hələ işləyərkən başqa node onu götürür və <strong>iki dəfə icra olunur</strong>.</td></tr>
+<tr><td>Klasterdə <code>OptimisticLockingException</code>?</td><td>Normaldır. Node-lar eyni job-u kilidləməyə çalışır; engine həmin dövrəni buraxır. Çox görünürsə <code>max-jobs-per-acquisition</code> böyükdür.</td></tr>
+<tr><td>Job executor pool ölçüsü nəyə görə seçilir?</td><td>Hikari connection pool-dan böyük olmamalıdır — əks halda darboğaz sadəcə thread-lərdən DB bağlantılarına köçür.</td></tr>
+</table>
+
+<h3>Versiyalaşma və deployment</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td>Yeni versiya deploy edəndə işləyən instansiyalara nə olur?</td><td>Heç nə. Onlar başladıqları definition-a bağlı qalır. Yalnız yeni instansiyalar yeni versiyanı götürür.</td></tr>
+<tr><td>Onları necə köçürürsünüz?</td><td><code>createMigrationPlan(src, tgt).mapEqualActivities().build()</code> + <code>newMigration(plan).processInstanceIds(...).execute()</code>. Toplu üçün <code>.processInstanceQuery(...)</code> və <code>.executeAsync()</code>.</td></tr>
+<tr><td>Activity id dəyişibsə?</td><td>Plan qurulur, amma <code>execute()</code> <code>MigratingProcessInstanceValidationException</code> atır və instansiya toxunulmamış qalır. Açıq <code>.mapActivities("Old","New")</code> lazımdır.</td></tr>
+<tr><td>Timer müddəti dəyişibsə?</td><td><code>.updateEventTrigger()</code> — abunəlik yeni tərifə uyğun yenidən qurulur.</td></tr>
+</table>
+
+<h3>Inteqrasiya</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td>Service task nə vaxt, external task nə vaxt?</td><td>Delegate — sürətli, JVM-daxili, engine tranzaksiyasında. External — uzun sürən iş, başqa dil/komanda, ayrıca scale, engine-dən asılı olmayan deployment. External task həm də wait state-dir: worker sönülü ikən heç nə xəta vermir.</td></tr>
+<tr><td><code>fetchAndLock</code> niyə lazımdır?</td><td>Çoxsaylı worker eyni topic-i poll edir; lock eyni işin iki dəfə görülməsinin qarşısını alır. Lock müddəti ən yavaş işdən uzun olmalıdır.</td></tr>
+<tr><td>Retry-a kim qərar verir?</td><td>Delegate-də model (<code>failedJobRetryTimeCycle</code>). External task-da worker — <code>handleFailure(..., retriesLeft, backoff)</code>, yəni xətanın növünə görə fərqli qərar verə bilir.</td></tr>
+<tr><td>Dual write problemi nədir?</td><td>DB commit-i və broker-ə göndərmə iki ayrı sistemdir, aralarında tranzaksiya yoxdur. Çökmə ya olmayan hadisə yaradır, ya da olmuş hadisəni itirir. Sıranı dəyişmək həll etmir.</td></tr>
+<tr><td>Outbox necə həll edir?</td><td>Event sətri status dəyişikliyi ilə <em>eyni tranzaksiyada</em>, eyni bazaya yazılır → atomikdir. Ayrıca publisher commit-dən sonra Kafka-ya göndərir. Qalan risk: ack ilə <code>publishedAt</code> arasında çökmə → at-least-once → consumer idempotent olmalıdır.</td></tr>
+<tr><td>Niyə key = correlationId?</td><td>Bir sifarişin bütün event-ləri eyni partition-a düşür → sıra qorunur; consumer həm də bu açarla dedup edir.</td></tr>
+<tr><td>DLT niyə lazımdır?</td><td>Daimi uğursuz record sonsuz retry olunub öz partition-unu bloklayır — arxasındakı bütün düzgün mesajlar dayanır.</td></tr>
+</table>
+
+<h3>Təhlükəsizlik</h3>
+<table>
+<tr><th style="width:38%">Sual</th><th>Qısa cavab</th></tr>
+<tr><td>Keycloak rolları niyə işləmir?</td><td>Spring default converter-i <code>scope</code>-a baxır, Keycloak rolları <code>realm_access.roles</code>-a qoyur. Custom <code>Converter&lt;Jwt, Collection&lt;GrantedAuthority&gt;&gt;</code> və <code>ROLE_</code> prefiksi lazımdır.</td></tr>
+<tr><td><code>issuer-uri</code> vs <code>jwk-set-uri</code>?</td><td><code>issuer-uri</code> OIDC discovery edir və <code>iss</code> claim-ini yoxlayır — başqa realm-ın düzgün imzalanmış token-i rədd olunur. <code>jwk-set-uri</code> yalnız açarları göstərir.</td></tr>
+<tr><td>401 və 403 fərqi?</td><td>401 — kim olduğunuzu bilmirik (autentifikasiya). 403 — bilirik, icazəniz yoxdur (avtorizasiya).</td></tr>
+<tr><td>CSRF-i nə vaxt söndürmək olar?</td><td>Stateless bearer token API-də — session/cookie yoxdursa, minmək üçün heç nə yoxdur. Cookie-li session forması varsa <strong>söndürmək olmaz</strong>.</td></tr>
+<tr><td>Camunda webapp-larına SSO necə edilir?</td><td><code>ContainerBasedAuthenticationFilter</code> + OIDC principal-ı Camunda identity service-inə map edən <code>AuthenticationProvider</code>; ya da community Keycloak identity plugin-i.</td></tr>
+</table>
+</div>
+
+<!-- ==================== 15 ==================== -->
+<div class="section">
+<h2>15. İşə salma təlimatı</h2>
+
+<h3>Tələblər</h3>
+<p>Java 21, Docker, və layihənin öz Gradle wrapper-i.</p>
+
+<h3>1. Postgres</h3>
+<div class="lang">bash</div>
+<pre><code>docker run -d --name camunda-postgres -p 5432:5432 \
+  -e POSTGRES_DB=camunda -e POSTGRES_USER=camunda -e POSTGRES_PASSWORD=camunda \
+  postgres:15</code></pre>
+
+<h3>2. Kafka və Keycloak</h3>
+<div class="lang">bash</div>
+<pre><code>docker compose up -d</code></pre>
+<p>
+Keycloak realm-ı <code>keycloak/realm-camunda-demo.json</code>-dan import olunur — rollar, client və
+istifadəçilər daxil. Heç nə əl ilə klikləmək lazım deyil.
+</p>
+
+<h3>3. Tətbiq</h3>
+<div class="lang">bash</div>
+<pre><code>./gradlew bootRun</code></pre>
+
+<table>
+<tr><th style="width:44%">Ünvan</th><th>Nə</th></tr>
+<tr><td><code>http://localhost:8082/orders</code></td><td>Demo UI</td></tr>
+<tr><td><code>http://localhost:8082/camunda</code></td><td>Cockpit / Tasklist / Admin — <code>demo</code> / <code>demo</code></td></tr>
+<tr><td><code>http://localhost:8083</code></td><td>Keycloak admin — <code>admin</code> / <code>admin</code></td></tr>
+</table>
+
+<h3>4. Təhlükəsiz API-ni çağırmaq</h3>
+<div class="lang">bash</div>
+<pre><code>TOKEN=$(curl -s -X POST \
+  http://localhost:8083/realms/camunda-demo/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=camunda-demo-api \
+  -d client_secret=demo-client-secret \
+  -d username=alice -d password=alice | jq -r .access_token)
+
+curl -X POST http://localhost:8082/api/orders \
+  -H <span class="s">"Authorization: Bearer $TOKEN"</span> -H <span class="s">'Content-Type: application/json'</span> \
+  -d <span class="s">'{"customerName":"Alice","amount":120}'</span></code></pre>
+
+<h3>5. Kafka ilə ödəniş göndərmək</h3>
+<div class="lang">bash</div>
+<pre><code><span class="c"># Açar da, dəyər də correlationId-dir</span>
+docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-producer.sh \
+  --bootstrap-server localhost:9092 --topic payment-events \
+  --property parse.key=true --property key.separator=:
+&gt; &lt;correlationId&gt;:&lt;correlationId&gt;
+
+<span class="c"># Prosesin nə yaydığına baxmaq</span>
+docker exec -i camunda-demo-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic order-events --from-beginning</code></pre>
+
+<h3>6. Testlər</h3>
+<div class="lang">bash</div>
+<pre><code>./gradlew test    <span class="c"># 32 test, Docker tələb etmir — H2 + mock JWT</span></code></pre>
+
+<h3>Demo ssenariləri</h3>
+<table>
+<tr><th style="width:30%">Müştəri adı / məbləğ</th><th>Nə göstərir</th></tr>
+<tr><td>istənilən ad, <code>&lt; 1000</code></td><td>Normal axın: ödəniş → çatdırılma → invoice → tamamlandı</td></tr>
+<tr><td>istənilən ad, <code>&gt;= 1000</code></td><td>DMN HIGH → manual review user task (Tasklist-də görünür)</td></tr>
+<tr><td><code>ShipFail-...</code></td><td><code>BpmnError</code> → kompensasiya → <strong>REFUNDED</strong></td></tr>
+<tr><td><code>TechFail-...</code></td><td>Texniki xəta → 3 retry → <strong>incident</strong>, status PAID qalır</td></tr>
+<tr><td>ödəniş göndərmədən 1 saat</td><td>Timer → Cancel Order → <strong>CANCELLED</strong></td></tr>
+</table>
+
+<div class="box ok" style="margin-top:8mm">
+  <span class="t">Yekun</span>
+  32 test · 13 test klası · 0 failure. Bütün mexanizmlər həm testlərdə, həm də canlı işləyən
+  sistemdə (brauzer, real Kafka broker-i, real Keycloak token-ləri, DB sorğuları) yoxlanılıb.
+</div>
+</div>
+
+</body>
+</html>

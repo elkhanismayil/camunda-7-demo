@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("order-admin")
                         .requestMatchers(HttpMethod.POST, "/api/orders/*/payment").hasRole("order-admin")
+                        .requestMatchers(HttpMethod.DELETE, "/api/orders/*").hasRole("order-admin")
                         .requestMatchers(HttpMethod.GET, "/api/orders/**").hasAnyRole("order-admin", "order-viewer")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

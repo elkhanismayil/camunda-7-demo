@@ -10,6 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,6 +43,9 @@ class OrderApiSecurityTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CREATE_ORDER_BODY))
                 .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(delete("/api/orders/does-not-matter"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -53,6 +57,10 @@ class OrderApiSecurityTest {
                         .with(tokenFor("order-viewer"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CREATE_ORDER_BODY))
+                .andExpect(status().isForbidden());
+
+        // Reading an order and destroying it are not the same privilege.
+        mockMvc.perform(delete("/api/orders/does-not-matter").with(tokenFor("order-viewer")))
                 .andExpect(status().isForbidden());
     }
 
@@ -73,6 +81,21 @@ class OrderApiSecurityTest {
 
         mockMvc.perform(get("/api/orders/{correlationId}", correlationId).with(tokenFor("order-viewer")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void letsAnAdminDeleteAnOrderAfterWhichItIsGoneFromTheApi() throws Exception {
+        String correlationId = createOrder();
+
+        mockMvc.perform(delete("/api/orders/{correlationId}", correlationId).with(tokenFor("order-admin")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/orders/{correlationId}", correlationId).with(tokenFor("order-viewer")))
+                .andExpect(status().isNotFound());
+
+        // Already gone: 404, not a second successful delete.
+        mockMvc.perform(delete("/api/orders/{correlationId}", correlationId).with(tokenFor("order-admin")))
+                .andExpect(status().isNotFound());
     }
 
     /**

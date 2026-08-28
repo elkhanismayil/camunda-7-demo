@@ -23,6 +23,7 @@ compensates itself when a downstream step fails.
 | **Kafka in** — event correlates a waiting instance | `PaymentEventConsumer` |
 | **Kafka out** — transactional outbox | `OrderEventOutbox`, `OutboxPublisher` |
 | **OAuth2 resource server** (Keycloak, JWT) | `SecurityConfig`, `KeycloakRealmRoleConverter` |
+| **Soft delete** + process instance termination | `OrderService.softDelete`, `OrderSoftDeleteTest` |
 | **Java delegates** wired via `delegateExpression` | `az.company.camunda.order.*Delegate` |
 | **Process testing** with `camunda-bpm-assert` | `src/test/java/.../order/*Test.java` |
 
@@ -370,9 +371,23 @@ All of these require a bearer token — see [Securing the API with Keycloak](#se
 | `POST` | `/api/orders` | `order-admin` | create an order and start a process instance |
 | `POST` | `/api/orders/{correlationId}/payment` | `order-admin` | correlate a `PaymentReceived` message |
 | `GET` | `/api/orders/{correlationId}` | `order-viewer` or `order-admin` | look up a single order |
+| `DELETE` | `/api/orders/{correlationId}` | `order-admin` | soft-delete an order and terminate its process instance |
 
 The Thymeleaf UI at `/orders` drives the exact same `OrderService`, so clicking
 around exercises the real engine rather than a parallel code path.
+
+### Soft delete
+
+`DELETE` marks the row with a `deletedAt` timestamp instead of removing it, so
+the order's business history survives, and returns `404` on every read
+afterwards — including a second delete. The status enum is left alone: whether
+an order was `PAID` or `CANCELLED` when it was deleted is worth keeping.
+
+The process instance is *not* left alone. A deleted order that still has an
+instance parked at `Gateway_WaitForEvent` would silently come back to life as
+`PAID` the moment a payment message arrived, so the delete terminates every
+instance carrying that business key — a `list()` rather than a `singleResult()`,
+because Camunda does not enforce business key uniqueness.
 
 ## Stack
 

@@ -42,6 +42,8 @@ public class Order {
 
     private Instant updatedAt;
 
+    private Instant deletedAt;
+
     protected Order() {
     }
 
@@ -67,6 +69,16 @@ public class Order {
     public void refund() {
         this.status = OrderStatus.REFUNDED;
         this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Deliberately not an {@link OrderStatus} value: "deleted" is orthogonal to
+     * where the order got to in the business flow, and folding it into the
+     * status would erase whether the order was PAID or CANCELLED when it went.
+     */
+    public void markDeleted() {
+        this.deletedAt = Instant.now();
+        this.updatedAt = this.deletedAt;
     }
 
     public void assignInvoice(String invoiceNumber) {
@@ -104,5 +116,9 @@ public class Order {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
     }
 }

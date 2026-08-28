@@ -2,6 +2,7 @@ package az.company.camunda.order;
 
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,17 @@ public class OrderController {
     public ResponseEntity<Void> notifyPaymentReceived(@PathVariable String correlationId) {
         boolean correlated = orderService.notifyPaymentReceived(correlationId);
         return correlated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Soft delete: the row survives, but the order stops existing as far as
+     * this API is concerned - hence 404 on everything afterwards, including a
+     * second delete.
+     */
+    @DeleteMapping("/{correlationId}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable String correlationId) {
+        boolean deleted = orderService.softDelete(correlationId);
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{correlationId}")

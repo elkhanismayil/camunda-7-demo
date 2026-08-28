@@ -59,6 +59,12 @@
             padding: 0.3rem 0.7rem;
             font-size: 0.8rem;
         }
+        button.danger {
+            background: #d93025;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.8rem;
+        }
+        .actions { display: flex; gap: 0.4rem; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -177,10 +183,16 @@
         </td>
         <td th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
         <td>
-            <form method="post" th:if="${order.status.name() == 'AWAITING_PAYMENT'}"
-                  th:action="@{/orders/{id}/payment(id=${order.correlationId})}">
-                <button type="submit" class="secondary">Simulate Payment</button>
-            </form>
+            <div class="actions">
+                <form method="post" th:if="${order.status.name() == 'AWAITING_PAYMENT'}"
+                      th:action="@{/orders/{id}/payment(id=${order.correlationId})}">
+                    <button type="submit" class="secondary">Simulate Payment</button>
+                </form>
+                <!-- Soft delete: hides the order and terminates its process instance. -->
+                <form method="post" th:action="@{/orders/{id}/delete(id=${order.correlationId})}">
+                    <button type="submit" class="danger">Delete</button>
+                </form>
+            </div>
         </td>
     </tr>
     </tbody>

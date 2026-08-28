@@ -64,6 +64,15 @@ public class OrderViewController {
         return "redirect:/orders";
     }
 
+    @PostMapping("/{correlationId}/delete")
+    public String delete(@PathVariable String correlationId, RedirectAttributes redirectAttributes) {
+        boolean deleted = orderService.softDelete(correlationId);
+        redirectAttributes.addFlashAttribute("message", deleted
+                ? "Order " + correlationId + " was deleted - its process instance was terminated too."
+                : "Order " + correlationId + " is already gone.");
+        return "redirect:/orders";
+    }
+
     public static final class CreateOrderForm {
         private String customerName;
         private BigDecimal amount;

@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+# A newer push to the same branch makes the running check obsolete - cancel it
+# rather than pay for two answers to the same question.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here writes back to the repository.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      # Restores the Gradle user home (dependencies and build cache) and
+      # shuts the daemon down at the end so the cache is written intact.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble
+        run: ./gradlew assemble
+
+      - name: Upload boot jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-jar
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # No services needed: the test profile runs on in-memory H2, the Kafka
+      # listener is started manually by the tests and the external task worker
+      # is @Profile("!test").
+      - name: Test
+        run: ./gradlew test
+
+      # Uploaded even on failure - a red run is exactly when the report matters.
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/test
+            build/test-results/test
+          if-no-files-found: warn

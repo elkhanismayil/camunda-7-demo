@@ -95,6 +95,20 @@ class OrderPageLocalizationTest {
     }
 
     @Test
+    void index_whenLanguageParameterIsUnsupported_thenClearsTheLanguageCookieInsteadOfStoringIt() throws Exception {
+        // Given French has no bundle
+
+        // When
+        MvcResult actualResult = mockMvc.perform(get("/orders").param("lang", "fr"))
+                .andReturn();
+
+        // Then
+        Cookie actualCookie = actualResult.getResponse().getCookie(CookieLocaleResolver.DEFAULT_COOKIE_NAME);
+        assertThat(actualCookie).isNotNull();
+        assertThat(actualCookie.getValue()).doesNotContain("fr");
+    }
+
+    @Test
     void index_whenAnOrderIsAwaitingPayment_thenTranslatesItsStatus() throws Exception {
         // Given
         createOrder("Localized Status Customer");

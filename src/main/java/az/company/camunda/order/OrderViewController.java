@@ -50,27 +50,37 @@ public class OrderViewController {
     @PostMapping
     public String create(@ModelAttribute("form") CreateOrderForm form, RedirectAttributes redirectAttributes) {
         ProcessInstance instance = orderService.createOrder(form.getCustomerName(), form.getAmount());
-        redirectAttributes.addFlashAttribute("message",
-                "Order created - correlationId=" + instance.getBusinessKey() + " is now waiting for payment.");
+        flashMessage(redirectAttributes, "order.message.created", instance.getBusinessKey());
         return "redirect:/orders";
     }
 
     @PostMapping("/{correlationId}/payment")
     public String notifyPayment(@PathVariable String correlationId, RedirectAttributes redirectAttributes) {
         boolean correlated = orderService.notifyPaymentReceived(correlationId);
-        redirectAttributes.addFlashAttribute("message", correlated
-                ? "Payment message correlated to order " + correlationId + " - process advanced."
-                : "No process instance is waiting for correlationId=" + correlationId + " anymore.");
+        flashMessage(redirectAttributes,
+                correlated ? "order.message.paymentCorrelated" : "order.message.paymentNotCorrelated",
+                correlationId);
         return "redirect:/orders";
     }
 
     @PostMapping("/{correlationId}/delete")
     public String delete(@PathVariable String correlationId, RedirectAttributes redirectAttributes) {
         boolean deleted = orderService.softDelete(correlationId);
-        redirectAttributes.addFlashAttribute("message", deleted
-                ? "Order " + correlationId + " was deleted - its process instance was terminated too."
-                : "Order " + correlationId + " is already gone.");
+        flashMessage(redirectAttributes,
+                deleted ? "order.message.deleted" : "order.message.alreadyGone",
+                correlationId);
         return "redirect:/orders";
+    }
+
+    /**
+     * Hands the view a message code and its arguments rather than a finished
+     * sentence. The redirect that follows is a separate request, and the reader
+     * may have switched language in between - resolving the text here would
+     * freeze it to the language of the POST.
+     */
+    private static void flashMessage(RedirectAttributes redirectAttributes, String messageCode, Object... messageArgs) {
+        redirectAttributes.addFlashAttribute("messageCode", messageCode);
+        redirectAttributes.addFlashAttribute("messageArgs", messageArgs);
     }
 
     public static final class CreateOrderForm {

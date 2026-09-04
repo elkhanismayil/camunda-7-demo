@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Camunda Correlation Demo</title>
+    <title th:text="#{order.list.title}">Camunda Correlation Demo</title>
     <style>
         body {
             font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -129,68 +129,101 @@
             font-size: 0.8rem;
             margin-right: 0.5rem;
         }
+        .language-switcher {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+        }
+        .language-switcher a { color: #1a73e8; text-decoration: none; }
+        .language-switcher a:hover { text-decoration: underline; }
+        .language-switcher span { color: #ccc; }
     </style>
 </head>
 <body>
 
-<h1>Camunda Correlation Demo</h1>
-<p class="subtitle">
+<!-- The current page and size ride along so switching language does not throw
+     the reader back to page one. -->
+<nav class="language-switcher">
+    <a th:href="@{/orders(page=${orderPage.number}, size=${size}, lang='az')}">AZ</a>
+    <span>|</span>
+    <a th:href="@{/orders(page=${orderPage.number}, size=${size}, lang='en')}">EN</a>
+    <span>|</span>
+    <a th:href="@{/orders(page=${orderPage.number}, size=${size}, lang='es')}">ES</a>
+</nav>
+
+<h1 th:text="#{order.list.title}">Camunda Correlation Demo</h1>
+<!-- utext because the sentence carries inline <code> markup. Splitting it into
+     three keys to keep the markup here would make it untranslatable: the word
+     order around those two terms differs per language. -->
+<p class="subtitle" th:utext="#{order.list.subtitle}">
     Each order starts a process instance that waits for a <code>PaymentReceived</code> message
     correlated by its <code>correlationId</code> - or times out after an hour and gets cancelled.
 </p>
 
-<div class="message" th:if="${message}" th:text="${message}"></div>
+<!-- The controller flashes a code plus its arguments, never finished text, so
+     the message is rendered in the reader's language and not in whichever one
+     was active when the redirect was issued.
+
+     msgWithParams rather than #{${messageCode}(${messageArgs})}: the latter
+     treats the whole argument array as one parameter, so {0} resolves to the
+     array's toString instead of the correlation id. -->
+<div class="message" th:if="${messageCode}"
+     th:text="${#messages.msgWithParams(messageCode, messageArgs)}"></div>
 
 <form class="create-form" method="post" th:action="@{/orders}" th:object="${form}">
     <label>
-        Customer name
+        <span th:text="#{order.form.customerName}">Customer name</span>
         <input type="text" th:field="*{customerName}" required="required"/>
     </label>
     <label>
-        Amount
+        <span th:text="#{order.form.amount}">Amount</span>
         <input type="number" step="0.01" min="0" th:field="*{amount}" required="required"/>
     </label>
-    <button type="submit">Create Order &amp; Start Process</button>
+    <button type="submit" th:text="#{order.form.submit}">Create Order &amp; Start Process</button>
 </form>
 
 <table>
     <thead>
     <tr>
-        <th>Correlation ID</th>
-        <th>Customer</th>
-        <th>Amount</th>
-        <th>Status</th>
-        <th>Invoice</th>
-        <th>Created</th>
-        <th>Action</th>
+        <th th:text="#{order.table.correlationId}">Correlation ID</th>
+        <th th:text="#{order.table.customer}">Customer</th>
+        <th th:text="#{order.table.amount}">Amount</th>
+        <th th:text="#{order.table.status}">Status</th>
+        <th th:text="#{order.table.invoice}">Invoice</th>
+        <th th:text="#{order.table.created}">Created</th>
+        <th th:text="#{order.table.action}">Action</th>
     </tr>
     </thead>
     <tbody>
     <tr th:if="${orderPage.empty}">
-        <td class="empty" colspan="7">No orders yet - create one above.</td>
+        <td class="empty" colspan="7" th:text="#{order.table.empty}">No orders yet - create one above.</td>
     </tr>
     <tr th:each="order : ${orderPage.content}">
         <td><code th:text="${order.correlationId}"></code></td>
         <td th:text="${order.customerName}"></td>
         <td th:text="${order.amount}"></td>
         <td>
-            <span class="badge" th:classappend="'badge-' + ${order.status}" th:text="${order.status}"></span>
+            <!-- The class stays keyed on the raw enum name; only the label is
+                 translated, so the badge colours survive a language switch. -->
+            <span class="badge" th:classappend="'badge-' + ${order.status}"
+                  th:text="#{'order.status.' + ${order.status.name()}}"></span>
         </td>
         <!-- Written by the external task worker, not by the process itself. -->
         <td>
             <code th:if="${order.invoiceNumber != null}" th:text="${order.invoiceNumber}"></code>
             <span th:unless="${order.invoiceNumber != null}" class="muted">-</span>
         </td>
-        <td th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+        <td th:text="${#temporals.format(order.createdAt, #messages.msg('order.format.dateTime'))}"></td>
         <td>
             <div class="actions">
                 <form method="post" th:if="${order.status.name() == 'AWAITING_PAYMENT'}"
                       th:action="@{/orders/{id}/payment(id=${order.correlationId})}">
-                    <button type="submit" class="secondary">Simulate Payment</button>
+                    <button type="submit" class="secondary" th:text="#{order.action.simulatePayment}">Simulate Payment</button>
                 </form>
                 <!-- Soft delete: hides the order and terminates its process instance. -->
                 <form method="post" th:action="@{/orders/{id}/delete(id=${order.correlationId})}">
-                    <button type="submit" class="danger">Delete</button>
+                    <button type="submit" class="danger" th:text="#{order.action.delete}">Delete</button>
                 </form>
             </div>
         </td>
@@ -200,11 +233,12 @@
 
 <nav class="pagination" th:if="${orderPage.totalPages > 1}">
     <span class="info"
-          th:text="'Page ' + ${orderPage.number + 1} + ' of ' + ${orderPage.totalPages} + ' (' + ${orderPage.totalElements} + ' orders)'"></span>
+          th:text="#{order.pagination.info(${orderPage.number + 1}, ${orderPage.totalPages}, ${orderPage.totalElements})}"></span>
 
-    <span th:if="${orderPage.first}" class="disabled">&laquo; Prev</span>
+    <span th:if="${orderPage.first}" class="disabled" th:text="#{order.pagination.previous}">&laquo; Prev</span>
     <a th:unless="${orderPage.first}"
-       th:href="@{/orders(page=${orderPage.number - 1}, size=${size})}">&laquo; Prev</a>
+       th:href="@{/orders(page=${orderPage.number - 1}, size=${size})}"
+       th:text="#{order.pagination.previous}">&laquo; Prev</a>
 
     <th:block th:each="pageNumber : ${#numbers.sequence(0, orderPage.totalPages - 1)}">
         <span th:if="${pageNumber == orderPage.number}" class="current" th:text="${pageNumber + 1}"></span>
@@ -214,8 +248,9 @@
     </th:block>
 
     <a th:unless="${orderPage.last}"
-       th:href="@{/orders(page=${orderPage.number + 1}, size=${size})}">Next &raquo;</a>
-    <span th:if="${orderPage.last}" class="disabled">Next &raquo;</span>
+       th:href="@{/orders(page=${orderPage.number + 1}, size=${size})}"
+       th:text="#{order.pagination.next}">Next &raquo;</a>
+    <span th:if="${orderPage.last}" class="disabled" th:text="#{order.pagination.next}">Next &raquo;</span>
 </nav>
 
 </body>

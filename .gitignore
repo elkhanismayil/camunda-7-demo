@@ -2,6 +2,9 @@ HELP.md
 .gradle
 build/
 .claude/
+CLAUDE.md
+NOTICE.md
+LICENSE-superpowers.txt
 .ua/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

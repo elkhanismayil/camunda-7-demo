@@ -185,6 +185,66 @@ anything, which looks exactly like logout being broken.
 > `KeycloakOidcRealmRoleMapper` is the login-side twin of
 > `KeycloakRealmRoleConverter`; both share `KeycloakRealmRoles`.
 
+#### Signing up
+
+Three users arrive with the realm file. Anyone else creates their own account,
+through this application rather than through Keycloak's own registration page:
+
+| Surface | Path |
+|---|---|
+| Browser | `GET /register` → form → `POST /register` |
+| API | `POST /api/v1/registrations` → `201` + `Location` |
+
+Both go through one `RegistrationService`, so the two surfaces cannot drift.
+
+Keycloak's built-in registration page is deliberately **off**. It creates a user
+with no realm role, and in this application that is a person who authenticates
+successfully and then gets a 403 on every page — the worst of the three possible
+outcomes. Owning the endpoint makes account creation and role assignment one
+operation: every new account gets `order-viewer`, granted in
+`RegistrationService`, so the rule is visible in the diff and testable without a
+running Keycloak.
+
+The endpoint is anonymous, because somebody without an account cannot present a
+token to ask for one. It returns **no token** — sign in through Keycloak
+afterwards, as any other user does.
+
+Under it sits a second confidential client, `camunda-demo-registrar`, whose
+service account holds exactly two `realm-management` roles: `manage-users` and
+`view-realm`. Not the `realm-admin` composite — that includes realm deletion and
+client management, which a sign-up form has no business being able to do. The
+app authenticates as that client with `client_credentials` and calls the Admin
+REST API over `RestClient`; there is no `keycloak-admin-client` dependency for
+three HTTP calls.
+
+```bash
+curl -i -X POST http://localhost:8082/api/v1/registrations \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"dave","email":"dave@example.com","firstName":"Dave",
+       "lastName":"Devlin","password":"s3cret-passphrase"}'
+```
+
+Failures answer in one shape, from a single `@RestControllerAdvice`:
+
+| Condition | Status | Code |
+|---|---|---|
+| Payload fails validation | `400` | `VALIDATION_FAILED` (+ the offending fields) |
+| Password refused by the realm policy | `400` | `REGISTRATION_REJECTED` |
+| Username already taken | `409` | `USERNAME_TAKEN` |
+| Keycloak unreachable or failing | `502` | `IDENTITY_PROVIDER_UNAVAILABLE` |
+| Keycloak did not answer in time | `504` | `IDENTITY_PROVIDER_TIMEOUT` |
+
+Keycloak's own error text is never forwarded — it names realm internals and
+admin endpoint paths. It goes to the log, next to the `traceId` the response
+carries, and the caller gets our own wording. The password is never logged
+either: `RegistrationRequest` overrides `toString()`, which is what a framework
+error dump would otherwise print.
+
+> **Not rolled back.** If the role assignment fails after the user was created,
+> the sign-up reports the failure and the account stays in Keycloak without a
+> role. Deleting it would be a fourth admin call with its own failure mode, and
+> an error a person can act on beats a "success" that logs in to a 403.
+
 > **Scope note.** This secures the REST API. Single sign-on *into Cockpit /
 > Tasklist* is a different job — it needs `ContainerBasedAuthenticationFilter`
 > plus an `AuthenticationProvider` that maps the OIDC principal into Camunda's
@@ -396,14 +456,28 @@ than racing a background thread.
 
 ## API
 
-All of these require a bearer token — see [Securing the API with Keycloak](#securing-the-api-with-keycloak).
+Every order endpoint requires a bearer token — see
+[Securing the API with Keycloak](#securing-the-api-with-keycloak). Registration
+is the one exception, for the reason given under [Signing up](#signing-up).
 
 | Method | Path | Required role | Purpose |
 |---|---|---|---|
+| `POST` | `/api/v1/registrations` | none (anonymous) | create an account and grant it `order-viewer` |
 | `POST` | `/api/orders` | `order-admin` | create an order and start a process instance |
 | `POST` | `/api/orders/{correlationId}/payment` | `order-admin` | correlate a `PaymentReceived` message |
 | `GET` | `/api/orders/{correlationId}` | `order-viewer` or `order-admin` | look up a single order |
 | `DELETE` | `/api/orders/{correlationId}` | `order-admin` | soft-delete an order and terminate its process instance |
+
+The generated contract is at **`/v3/api-docs`**, browsable at
+**`/swagger-ui/index.html`**. Both are anonymous: a specification that documents
+how to obtain a token is no use to a reader who must already hold one to read
+it. Only `/api/v1/registrations` is annotated so far — the order endpoints
+predate springdoc here.
+
+> The order endpoints are unversioned (`/api/orders`) while the new one is
+> `/api/v1/...`. Versioning the existing paths is a breaking change for the
+> curl flows above and for the Postman/manual runs people have saved, so it is
+> a separate decision, not a drive-by rename.
 
 The Thymeleaf UI at `/orders` drives the exact same `OrderService`, so clicking
 around exercises the real engine rather than a parallel code path.
@@ -424,4 +498,5 @@ because Camunda does not enforce business key uniqueness.
 ## Stack
 
 Java 21 · Spring Boot 4.1 · Camunda Platform 7.24 · Spring Data JPA · Thymeleaf ·
-PostgreSQL · Apache Kafka · Keycloak · Spring Security (OAuth2 resource server)
+PostgreSQL · Apache Kafka · Keycloak · Spring Security (OAuth2 resource server
++ OAuth2 client) · springdoc-openapi · Testcontainers

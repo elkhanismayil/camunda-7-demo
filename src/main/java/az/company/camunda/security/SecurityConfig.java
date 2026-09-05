@@ -86,6 +86,9 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/register", "/error").permitAll()
+                        // The API contract, including how to obtain a token, is of no
+                        // use to a reader who must already hold one to read it.
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Before the GET rule below, which would otherwise also
                         // match these paths and hand a viewer write access.
                         .requestMatchers(HttpMethod.POST, "/orders").hasRole("order-admin")

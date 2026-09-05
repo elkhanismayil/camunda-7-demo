@@ -16,6 +16,11 @@ spring:
             # is byte-for-byte the production entry point. Only the provider is
             # swapped, for the reason spelled out below.
             provider: keycloak-test
+          keycloak-registrar:
+            # Same reason as above: the registrar must not trigger issuer discovery
+            # at startup either. No token is ever fetched in these tests - the
+            # Keycloak client is mocked.
+            provider: keycloak-test
         provider:
           keycloak-test:
             # Endpoints listed instead of discovered. issuer-uri fetches the OIDC
@@ -65,3 +70,10 @@ demo:
     payment-events-dlt-topic: payment-events-dlt
     order-events-topic: order-events
     consumer-group: camunda-payment-correlator
+
+keycloak:
+  admin:
+    base-url: http://localhost:8083
+    realm: camunda-demo
+    connect-timeout: 2s
+    read-timeout: 5s

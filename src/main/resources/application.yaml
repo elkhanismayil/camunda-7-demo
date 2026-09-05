@@ -51,6 +51,15 @@ spring:
             # the scope that yields an ID token, and the ID token is where
             # oauth2Login reads the user and the realm roles from.
             scope: openid,profile,email
+          # The service account this application uses to talk to the Keycloak Admin
+          # API. No user is involved, so client_credentials rather than a code flow.
+          # Its Keycloak service account holds manage-users and view-realm and
+          # nothing else - deliberately not the realm-admin composite.
+          keycloak-registrar:
+            client-id: camunda-demo-registrar
+            client-secret: registrar-client-secret
+            authorization-grant-type: client_credentials
+            provider: keycloak
         provider:
           keycloak:
             issuer-uri: http://localhost:8083/realms/camunda-demo
@@ -109,6 +118,15 @@ camunda.bpm:
     firstName: Demo
   filter:
     create: All tasks
+
+keycloak:
+  admin:
+    base-url: http://localhost:8083
+    realm: camunda-demo
+    # Every outbound call is bounded. Without these the request thread waits for
+    # Keycloak's worst case, and a slow identity provider becomes a stalled app.
+    connect-timeout: 2s
+    read-timeout: 5s
 
 demo:
   invoice-worker:

@@ -43,6 +43,10 @@ dependencies {
     // fetch its own service-account token.
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // Explicit version because springdoc is not in the Spring Boot BOM, so nothing
+    // else supplies one. The 3.x line is the one built against Boot 4 / Spring
+    // Security 7; 2.x targets Boot 3 and does not start here.
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     // Gives Thymeleaf the sec:authorize dialect, so a control the current user
     // may not use is never rendered rather than rendered into a 403.
     // Still artifact "6" under Spring Security 7 - that is what the Boot 4.1 BOM manages.
@@ -50,6 +54,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation "org.camunda.bpm:camunda-bpm-assert:${camundaVersion}"
     testImplementation 'org.springframework.security:spring-security-test'
+    // No version: the Spring Boot BOM manages Testcontainers. The registration
+    // flow is the one path whose correctness lives in Keycloak's Admin API rather
+    // than in this codebase, so it is covered against a real Keycloak.
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     runtimeOnly 'org.postgresql:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'com.h2database:h2'

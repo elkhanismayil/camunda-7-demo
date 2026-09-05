@@ -37,6 +37,9 @@ dependencies {
     // the spring.kafka.* properties.
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    // Version is explicit because springdoc is not managed by Spring Boot's BOM.
+    // The 3.x line is the one built against Spring Boot 4 / Framework 7.
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation "org.camunda.bpm:camunda-bpm-assert:${camundaVersion}"
     testImplementation 'org.springframework.security:spring-security-test'

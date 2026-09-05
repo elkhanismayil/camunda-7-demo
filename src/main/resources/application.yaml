@@ -5,6 +5,15 @@ spring:
   application:
     name: camunda-7-demo
 
+  messages:
+    basename: messages
+    encoding: UTF-8
+    # Azerbaijani has no bundle of its own - it is messages.properties. With the
+    # system-locale fallback left on, an unresolved key would land on whatever
+    # language the host JVM happens to run in, so a server started with an
+    # English locale would answer Azerbaijani requests in English.
+    fallback-to-system-locale: false
+
   datasource:
     url: jdbc:postgresql://localhost:5432/camunda
     username: camunda

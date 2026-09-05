@@ -376,6 +376,31 @@ All of these require a bearer token — see [Securing the API with Keycloak](#se
 The Thymeleaf UI at `/orders` drives the exact same `OrderService`, so clicking
 around exercises the real engine rather than a parallel code path.
 
+The generated OpenAPI contract is served at `/v3/api-docs`, with Swagger UI at
+`/swagger-ui.html`.
+
+### Errors
+
+Every failed call returns one body shape, produced by the single
+`@RestControllerAdvice` in `exception/`:
+
+```json
+{
+  "status": 404,
+  "errorCode": "ORDER_NOT_FOUND",
+  "message": "No order was found for correlation ID 6f1c-....",
+  "timestamp": "2026-09-04T06:12:44.318Z",
+  "path": "/api/orders/6f1c-...",
+  "traceId": "0f2b8c4a-1d3e-4f5a-9b7c-2e8d6a1f0c33"
+}
+```
+
+`errorCode` is the stable field to branch on; `message` is localized and will
+change with the caller's language. The same `traceId` comes back in the
+`X-Trace-Id` response header and is what the server logged the failure under —
+quote it in a bug report and the log line is one grep away. Nothing else about
+the failure reaches the client: no stack trace, no exception class, no SQL.
+
 ### Soft delete
 
 `DELETE` marks the row with a `deletedAt` timestamp instead of removing it, so
@@ -389,7 +414,55 @@ instance parked at `Gateway_WaitForEvent` would silently come back to life as
 instance carrying that business key — a `list()` rather than a `singleResult()`,
 because Camunda does not enforce business key uniqueness.
 
+## Localization
+
+Three languages: **Azerbaijani** (`az`, the default), **English** (`en`) and
+**Spanish** (`es`).
+
+| Surface | How the language is chosen |
+|---|---|
+| Thymeleaf UI at `/orders` | `?lang=az\|en\|es`, stored in a cookie so it survives the next click |
+| REST API under `/api/orders` | the `Accept-Language` request header |
+| Neither present | Azerbaijani |
+
+An unsupported language falls back to Azerbaijani rather than half-translating
+the page, and `?lang=fr` clears the cookie instead of parking a language the
+application has no bundle for.
+
+Both surfaces share one `LocaleResolver` (`config/I18nConfig`), because Spring
+allows only one per DispatcherServlet: a cookie resolver whose default is the
+request's `Accept-Language`. A plain cookie resolver would have made the API
+ignore the header; a plain header resolver would have made the UI forget the
+switcher.
+
+### Adding or changing a string
+
+Bundles live in `src/main/resources`:
+
+| File | Language |
+|---|---|
+| `messages.properties` | Azerbaijani — the default bundle **and** the fallback |
+| `messages_en.properties` | English |
+| `messages_es.properties` | Spanish |
+
+There is deliberately **no `messages_az.properties`**. Azerbaijani is the
+default bundle, and a second copy of those strings would only be somewhere for
+them to drift.
+
+A key added to one bundle must be added to all three: `MessageBundleParityTest`
+compares the key sets and fails the build on a missing translation, because a
+forgotten key does not fail at runtime — it silently renders Azerbaijani inside
+an otherwise Spanish page.
+
+Two things to know when editing a bundle:
+
+- A single quote is `MessageFormat`'s escape character. In any message that
+  takes `{0}` parameters, an apostrophe has to be doubled.
+- `order.format.dateTime` is a date *pattern*, not a sentence — the day/month
+  order is part of what changes between locales.
+
 ## Stack
 
 Java 21 · Spring Boot 4.1 · Camunda Platform 7.24 · Spring Data JPA · Thymeleaf ·
-PostgreSQL · Apache Kafka · Keycloak · Spring Security (OAuth2 resource server)
+PostgreSQL · Apache Kafka · Keycloak · Spring Security (OAuth2 resource server) ·
+springdoc-openapi

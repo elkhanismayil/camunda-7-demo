@@ -156,8 +156,34 @@ needs, and one chain would mean weakening all three to the weakest:
   therefore CSRF protection off. That is the only place it is off.
 - **`/camunda/**`** — Camunda ships its own login *and* its own CSRF filter;
   layering Spring Security's on top rejects its POSTs.
-- **everything else** — open so the demo stays clickable, but CSRF stays **on**.
-  Thymeleaf injects the token into every `th:action` form.
+- **everything else** — the Thymeleaf UI. A cookie-backed **OIDC login session**
+  (`oauth2Login`), so CSRF stays **on**. Thymeleaf injects the token into every
+  `th:action` form.
+
+#### Logging in to the demo UI
+
+Opening `/orders` anonymously redirects to Keycloak's own login page — this app
+has no login form, and the password never reaches it. Sign in as any user from
+the table above; **`carol` gets a 403**, which is the correct outcome for an
+authenticated user with no roles, not a bug.
+
+The UI enforces the same split as the API: `order-viewer` may read the list,
+`order-admin` may create, pay and delete. Write controls are hidden with
+`sec:authorize` rather than left to fail, so a viewer is never offered a button
+that can only produce a 403.
+
+Logout is RP-initiated: it ends the Keycloak SSO session as well as ours.
+Without that round trip the next login would silently succeed without asking for
+anything, which looks exactly like logout being broken.
+
+> **Roles in the ID token.** `oauth2Login` reads authorities from the **ID
+> token**, but Keycloak's realm-roles mapper defaults to `id.token.claim: false`
+> — access token only. The realm file therefore adds an explicit realm-roles
+> mapper with `id.token.claim: true` on `camunda-demo-api`. Without it every
+> `hasRole` on the UI chain is false despite a valid session: the same failure
+> as the converter problem above, on the other surface, and just as silent.
+> `KeycloakOidcRealmRoleMapper` is the login-side twin of
+> `KeycloakRealmRoleConverter`; both share `KeycloakRealmRoles`.
 
 > **Scope note.** This secures the REST API. Single sign-on *into Cockpit /
 > Tasklist* is a different job — it needs `ContainerBasedAuthenticationFilter`
@@ -264,6 +290,12 @@ docker compose up -d
 
 ./gradlew bootRun
 ```
+
+> **Already ran this before?** `--import-realm` only imports into a *fresh*
+> Keycloak; it will not re-import over a realm that already exists. If the
+> browser login lands you on `/orders` with a 403, you are running an older
+> realm without the ID-token role mapper. Recreate the container:
+> `docker compose rm -sf keycloak && docker compose up -d keycloak`.
 
 Calling the secured API:
 

@@ -37,6 +37,16 @@ dependencies {
     // the spring.kafka.* properties.
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    // The browser UI logs in through Keycloak's own login page, so the app needs
+    // the client half of OAuth2 as well as the resource-server half. It also
+    // supplies the OAuth2AuthorizedClientManager the registration flow uses to
+    // fetch its own service-account token.
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // Gives Thymeleaf the sec:authorize dialect, so a control the current user
+    // may not use is never rendered rather than rendered into a 403.
+    // Still artifact "6" under Spring Security 7 - that is what the Boot 4.1 BOM manages.
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation "org.camunda.bpm:camunda-bpm-assert:${camundaVersion}"
     testImplementation 'org.springframework.security:spring-security-test'

@@ -30,6 +30,35 @@ spring:
           # signature - a correctly signed token from another realm is rejected.
           issuer-uri: http://localhost:8083/realms/camunda-demo
 
+      # The browser half. The API above only ever inspects a token someone else
+      # obtained; this is the client that sends the user to Keycloak to get one.
+      client:
+        registration:
+          keycloak:
+            client-id: camunda-demo-api
+            client-secret: demo-client-secret
+            # Authorization code, so the credential the browser carries back is
+            # a single-use code that is worthless without the secret. The code
+            # is exchanged for tokens server to server, and the password never
+            # passes through this application at all.
+            authorization-grant-type: authorization_code
+            # Spelled out rather than left to the framework default, which only
+            # gets filled in on the issuer-discovery path. It has to match a
+            # redirectUris entry on the camunda-demo-api client in the realm
+            # file, so it is worth having both halves visible and greppable.
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            # "openid" is what makes this OIDC rather than plain OAuth2 - it is
+            # the scope that yields an ID token, and the ID token is where
+            # oauth2Login reads the user and the realm roles from.
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8083/realms/camunda-demo
+            # Otherwise the principal name is the Keycloak user UUID from "sub".
+            # Matches setPrincipalClaimName on the API side, so the same person
+            # is logged and displayed identically on both surfaces.
+            user-name-attribute: preferred_username
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:

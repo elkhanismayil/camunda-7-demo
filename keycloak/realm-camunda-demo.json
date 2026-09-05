@@ -32,7 +32,43 @@
       "webOrigins": [
         "http://localhost:8082"
       ],
-      "fullScopeAllowed": true
+      "fullScopeAllowed": true,
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8082/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles in id token",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "user.attribute": "foo",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "camunda-demo-registrar",
+      "name": "Camunda Demo Registrar",
+      "description": "Service account used by the app to create users through the Keycloak Admin REST API. Not a login client.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "registrar-client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "users": [
@@ -90,6 +126,17 @@
       "realmRoles": [],
       "email": "carol@example.com",
       "requiredActions": []
+    },
+    {
+      "username": "service-account-camunda-demo-registrar",
+      "enabled": true,
+      "serviceAccountClientId": "camunda-demo-registrar",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-realm"
+        ]
+      }
     }
   ]
 }

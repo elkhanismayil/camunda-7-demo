@@ -9,6 +9,27 @@ spring:
           # because the tests inject pre-authenticated JWTs.
           jwk-set-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/certs
 
+      client:
+        registration:
+          keycloak:
+            # Registration id stays "keycloak", so /oauth2/authorization/keycloak
+            # is byte-for-byte the production entry point. Only the provider is
+            # swapped, for the reason spelled out below.
+            provider: keycloak-test
+        provider:
+          keycloak-test:
+            # Endpoints listed instead of discovered. issuer-uri fetches the OIDC
+            # metadata while the context starts, so a single one here would make
+            # every @SpringBootTest in this repository require a live Keycloak -
+            # the same trap the resource-server block above sidesteps. None of
+            # these is ever called; the tests assert on the redirect built from
+            # them.
+            authorization-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/auth
+            token-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/token
+            jwk-set-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/certs
+            user-info-uri: http://localhost:8083/realms/camunda-demo/protocol/openid-connect/userinfo
+            user-name-attribute: preferred_username
+
   kafka:
     listener:
       # No broker in these tests. The listener bean still exists so the tests

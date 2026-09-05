@@ -1,7 +1,10 @@
 HELP.md
 .gradle
 build/
-.claude/settings.local.json
+.claude/
+CLAUDE.md
+NOTICE.md
+LICENSE-superpowers.txt
 .ua/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

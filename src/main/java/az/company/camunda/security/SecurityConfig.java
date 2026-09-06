@@ -69,7 +69,7 @@ public class SecurityConfig {
         return http
                 .securityMatcher("/camunda/**", "/app/**", "/lib/**", "/api/engine/**")
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
 
@@ -89,8 +89,7 @@ public class SecurityConfig {
                         // The API contract, including how to obtain a token, is of no
                         // use to a reader who must already hold one to read it.
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // Before the GET rule below, which would otherwise also
-                        // match these paths and hand a viewer write access.
+                        // Write operations (POST/DELETE) restricted to order-admin; reads open to both roles
                         .requestMatchers(HttpMethod.POST, "/orders").hasRole("order-admin")
                         .requestMatchers(HttpMethod.POST, "/orders/*/payment").hasRole("order-admin")
                         .requestMatchers(HttpMethod.POST, "/orders/*/delete").hasRole("order-admin")

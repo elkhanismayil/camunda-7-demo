@@ -107,7 +107,7 @@ class OrderApiSecurityTest {
      * Authorization of the UI chain itself is covered by {@link OrderUiSecurityTest}.
      */
     @Test
-    void routesTheDemoUiToTheUiChainRatherThanTheApiChain() throws Exception {
+    void getOrders_whenRequestTargetsUiPath_thenRoutesToUiChainNotApiChain() throws Exception {
         mockMvc.perform(get("/orders"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/oauth2/authorization/keycloak"));

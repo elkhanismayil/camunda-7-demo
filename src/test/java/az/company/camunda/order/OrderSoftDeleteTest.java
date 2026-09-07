@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.math.BigDecimal;
 
@@ -14,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -124,13 +127,18 @@ class OrderSoftDeleteTest {
     void deletesAnOrderFromTheDemoUiAndDropsItOffThePage() throws Exception {
         String correlationId = createOrder("Deleted From The Ui");
 
-        mockMvc.perform(post("/orders/{correlationId}/delete", correlationId).with(csrf()))
+        mockMvc.perform(post("/orders/{correlationId}/delete", correlationId).with(asOrderAdmin()).with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
-        mockMvc.perform(get("/orders"))
+        mockMvc.perform(get("/orders").with(asOrderAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString(correlationId))));
+    }
+
+    /** Deleting through the UI is an order-admin action; see OrderUiSecurityTest. */
+    private static RequestPostProcessor asOrderAdmin() {
+        return oidcLogin().authorities(new SimpleGrantedAuthority("ROLE_order-admin"));
     }
 
     /** Amount stays below the DMN's HIGH threshold so the instance parks at the payment wait. */

@@ -13,6 +13,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -99,13 +100,17 @@ class OrderApiSecurityTest {
     }
 
     /**
-     * The Thymeleaf demo UI and the Camunda webapps are served by different
-     * filter chains and must stay reachable - a securityMatcher that
-     * accidentally swallowed them would lock the demo out of its own pages.
+     * The UI and the API are served by different filter chains, and which one
+     * answers is visible in the response: the UI sends a browser to log in, the
+     * API answers a missing token with 401. A securityMatcher that accidentally
+     * swallowed {@code /orders} would turn the demo pages into a JSON 401.
+     * Authorization of the UI chain itself is covered by {@link OrderUiSecurityTest}.
      */
     @Test
-    void leavesTheDemoUiOpen() throws Exception {
-        mockMvc.perform(get("/orders")).andExpect(status().isOk());
+    void getOrders_whenRequestTargetsUiPath_thenRoutesToUiChainNotApiChain() throws Exception {
+        mockMvc.perform(get("/orders"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/oauth2/authorization/keycloak"));
     }
 
     private String createOrder() throws Exception {

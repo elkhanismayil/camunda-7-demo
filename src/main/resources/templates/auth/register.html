@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Sign up - Camunda Correlation Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: #1a1a1a;
+            background: #fafafa;
+        }
+        h1 { margin-bottom: 0.2rem; }
+        p.subtitle { color: #666; margin-top: 0; }
+        .errors {
+            background: #f8d7da;
+            border: 1px solid #d93025;
+            color: #a71d2a;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+        .errors ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+        form.sign-up {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.25rem;
+            max-width: 420px;
+        }
+        form.sign-up label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.85rem;
+            color: #555;
+            gap: 0.25rem;
+        }
+        input {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: #1a73e8;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .hint { color: #888; font-size: 0.8rem; }
+        a { color: #1a73e8; }
+    </style>
+</head>
+<body>
+
+<h1>Create an account</h1>
+<p class="subtitle">
+    The account is created in Keycloak and granted read-only access to orders.
+    Signing in happens on Keycloak's own login page - this form never stores your password.
+</p>
+
+<div class="errors" th:if="${errors}">
+    <strong>Your account was not created:</strong>
+    <ul>
+        <li th:each="error : ${errors}" th:text="${error}"></li>
+    </ul>
+</div>
+
+<!-- th:action rather than action, so Thymeleaf writes the CSRF token into the
+     form. CSRF protection stays on for this chain (see SecurityConfig). -->
+<form class="sign-up" method="post" th:action="@{/register}">
+    <label>
+        Username
+        <input type="text" name="username" th:value="${form.username}" required="required"/>
+    </label>
+    <label>
+        Email
+        <input type="email" name="email" th:value="${form.email}" required="required"/>
+    </label>
+    <label>
+        First name
+        <input type="text" name="firstName" th:value="${form.firstName}" required="required"/>
+    </label>
+    <label>
+        Last name
+        <input type="text" name="lastName" th:value="${form.lastName}" required="required"/>
+    </label>
+    <label>
+        Password
+        <!-- Deliberately not repopulated: a value here would be written into the
+             page, the browser cache and any saved copy of it. -->
+        <input type="password" name="password" minlength="8" required="required"/>
+        <span class="hint">At least 8 characters. Keycloak's realm policy has the final say.</span>
+    </label>
+    <button type="submit">Create account</button>
+</form>
+
+<p class="hint">Already have an account? <a th:href="@{/orders}">Sign in</a>.</p>
+
+</body>
+</html>
